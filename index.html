@@ -256,6 +256,49 @@
   }
   .video-preview.visible { display: flex; }
 
+  .recording-bar {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+    padding: 14px 24px;
+    background: rgba(220, 40, 40, 0.12);
+    border: 1px solid rgba(220, 40, 40, 0.3);
+    border-radius: 12px;
+  }
+  .recording-bar.visible { display: flex; }
+  .rec-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #e04040;
+    animation: recPulse 1s infinite;
+  }
+  @keyframes recPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .rec-timer {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #e0e0e0;
+    font-variant-numeric: tabular-nums;
+    min-width: 60px;
+    text-align: center;
+  }
+  .btn-stop {
+    padding: 8px 20px;
+    background: #dc2828;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .btn-stop:hover { background: #b91c1c; }
+
   /* Quick Surah Picker */
   .quick-pick {
     display: flex;
@@ -327,6 +370,17 @@
     <option value="Abdul_Basit_Murattal_192kbps">Abdul Basit (Murattal)</option>
     <option value="Abdurrahmaan_As-Sudais_192kbps">As-Sudais</option>
     <option value="Yasser_Ad-Dussary_128kbps">Yasser Ad-Dussary</option>
+    <option value="Minshawy_Murattal_128kbps">Al-Minshawi (Murattal)</option>
+    <option value="Maher_AlMuaiqly_128kbps">Maher Al-Muaiqly</option>
+    <option value="Abu_Bakr_Ash-Shaatree_128kbps">Abu Bakr Ash-Shatri</option>
+    <option value="Hani_Rifai_192kbps">Hani Ar-Rifai</option>
+    <option value="Muhammad_Ayyoub_128kbps">Muhammad Ayyoub</option>
+    <option value="Muhammad_Jibreel_128kbps">Muhammad Jibreel</option>
+    <option value="Nasser_Alqatami_128kbps">Nasser Al-Qatami</option>
+    <option value="Saood_ash-Shuraym_128kbps">Saud Ash-Shuraim</option>
+    <option value="Hudhaify_128kbps">Ali Al-Hudhaifi</option>
+    <option value="Abdullah_Matroud_128kbps">Abdullah Matroud</option>
+    <option value="Abdul_Basit_Mujawwad_128kbps">Abdul Basit (Mujawwad)</option>
   </select>
 </div>
 
@@ -350,6 +404,11 @@
   </div>
   <div class="video-preview" id="videoPreview" style="display:none">
     <video id="previewVideo" controls style="width:100%;max-width:720px;border-radius:12px"></video>
+  </div>
+  <div class="recording-bar" id="recordingBar" style="display:none">
+    <span class="rec-dot"></span>
+    <span class="rec-timer" id="recTimer">0:00</span>
+    <button class="btn btn-stop" id="btnStop" onclick="stopRecording()">⏹ Stop</button>
   </div>
 </div>
 
@@ -851,6 +910,7 @@ async function generate() {
   document.getElementById('btnPlay').style.display = 'none';
   document.getElementById('btnDownloadVid').style.display = 'none';
   document.getElementById('videoPreview').classList.remove('visible');
+  document.getElementById('recordingBar').classList.remove('visible');
   const loader = document.getElementById('loader');
   const loaderText = document.getElementById('loaderText');
   loader.classList.add('visible');
@@ -1104,6 +1164,9 @@ async function createVideo() {
     const cleanup = () => { clearInterval(drawTimer); rec.remove(); audioCtx.close(); };
 
     mediaRecorder.onstop = () => {
+      clearInterval(timerInterval); clearInterval(drawTimer);
+      recBar.classList.remove('visible');
+      window.removeEventListener('beforeunload', window._stopRecording);
       cleanup();
       console.log('[Video] Done. Chunks:', recordedChunks.length);
       if (!recordedChunks.length) { btnVideo.disabled=false; btnVideo.textContent='🎬 Create Video'; showError('No video data. Try a different browser.'); return; }
@@ -1111,20 +1174,54 @@ async function createVideo() {
       console.log('[Video] Output:', (blob.size/1024).toFixed(0), 'KB');
       const vLabel = verses.length===1 ? String(verses[0].verseNum) : `${verses[0].verseNum}-${verses[verses.length-1].verseNum}`;
       const url = URL.createObjectURL(blob);
-      // Save for preview — no auto-download
+      // Save for preview — auto-play, download optional
       window._lastVideoURL = url;
       window._lastVideoName = `quran-${surah}-${vLabel}.${ext}`;
       document.getElementById('btnPlay').style.display = '';
       document.getElementById('btnDownloadVid').style.display = '';
+      // Auto-play preview
+      const vid = document.getElementById('previewVideo');
+      vid.src = url;
+      document.getElementById('videoPreview').classList.add('visible');
+      vid.play().catch(() => {});
       btnVideo.disabled=false; btnVideo.textContent='🎬 Create Video';
     };
 
-    mediaRecorder.onerror = () => { cleanup(); btnVideo.disabled=false; btnVideo.textContent='🎬 Create Video'; };
+    mediaRecorder.onerror = () => {
+      clearInterval(timerInterval); clearInterval(drawTimer);
+      recBar.classList.remove('visible');
+      window.removeEventListener('beforeunload', window._stopRecording);
+      cleanup();
+      btnVideo.disabled=false; btnVideo.textContent='🎬 Create Video';
+    };
 
     // ---- Start: timer-based stop (audio is pre-scheduled) ----
     mediaRecorder.start(500);
     btnVideo.textContent = '🔴 Recording…';
     console.log('[Video] Started, ends in', totalDuration.toFixed(1), 's');
+
+    // Show recording bar with live timer
+    const recBar = document.getElementById('recordingBar');
+    const recTimer = document.getElementById('recTimer');
+    recBar.classList.add('visible');
+    let recSeconds = 0;
+    let timerInterval = setInterval(() => {
+      recSeconds++;
+      const m = Math.floor(recSeconds / 60);
+      const s = recSeconds % 60;
+      recTimer.textContent = m + ':' + String(s).padStart(2, '0');
+    }, 1000);
+
+    // Stop button + beforeunload
+    window._stopRecording = () => {
+      if (mediaRecorder.state === 'recording') {
+        clearInterval(timerInterval); clearInterval(drawTimer);
+        mediaRecorder.stop();
+        recBar.classList.remove('visible');
+        btnVideo.textContent = '💾 Saving…';
+      }
+    };
+    window.addEventListener('beforeunload', window._stopRecording);
 
     // Keep feeding frames during recording (some browsers pause capture on static canvas)
     let drawTimer = setInterval(() => {
@@ -1146,6 +1243,10 @@ async function createVideo() {
     btnVideo.disabled = false; btnVideo.textContent = '🎬 Create Video';
     showError(`Video: ${err.message}`);
   }
+}
+
+function stopRecording() {
+  if (window._stopRecording) window._stopRecording();
 }
 
 // ===== QUICK PICK =====
