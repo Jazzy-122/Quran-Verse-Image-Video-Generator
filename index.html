@@ -1173,16 +1173,11 @@ async function createVideo() {
       console.log('[Video] Output:', (blob.size/1024).toFixed(0), 'KB');
       const vLabel = verses.length===1 ? String(verses[0].verseNum) : `${verses[0].verseNum}-${verses[verses.length-1].verseNum}`;
       const url = URL.createObjectURL(blob);
-      // Save for preview — auto-play, download optional
+      // Save for preview — no auto-play, wait for user click
       window._lastVideoURL = url;
       window._lastVideoName = `quran-${surah}-${vLabel}.${ext}`;
       document.getElementById('btnPlay').style.display = '';
       document.getElementById('btnDownloadVid').style.display = '';
-      // Auto-play preview
-      const vid = document.getElementById('previewVideo');
-      vid.src = url;
-      document.getElementById('videoPreview').classList.add('visible');
-      vid.play().catch(() => {});
       btnVideo.disabled=false; btnVideo.textContent='🎬 Create Video';
     };
 
