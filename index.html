@@ -1160,7 +1160,11 @@ async function createVideo() {
 
     mediaRecorder.ondataavailable = (e) => { if (e.data?.size>0) { recordedChunks.push(e.data); console.log('[Video] Chunk:', (e.data.size/1024).toFixed(0), 'KB'); } };
 
-    const cleanup = () => { clearInterval(drawTimer); rec.remove(); audioCtx.close(); };
+    const cleanup = () => {
+      try { src.stop(); src.disconnect(); } catch(e){}
+      clearInterval(drawTimer); rec.remove();
+      audioCtx.close();
+    };
 
     mediaRecorder.onstop = () => {
       clearInterval(timerInterval); clearInterval(drawTimer);
