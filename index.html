@@ -372,6 +372,13 @@
     .rec-timer { font-size: 1.1rem; }
     footer { padding: 20px; font-size: 0.7rem; }
   }
+/* Al Qalam Quran font */
+  @font-face {
+    font-family: 'Al Qalam Quran';
+    src: url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/al-qalam-quran-majeed.woff2') format('woff2'),
+         url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/al-qalam-quran-majeed.ttf') format('truetype');
+    font-display: swap;
+  }
 </style>
 </head>
 <body>
@@ -687,16 +694,16 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
 
     // Arabic
     const arabicFontSize = fitText(ctx, v.arabic, TEXT_W * 0.92, Math.round(54 * mobileScale), Math.round(96 * mobileScale),
-      `400 96px "Amiri", "Noto Naskh Arabic", serif`);
-    ctx.font = `400 ${arabicFontSize}px "Amiri", "Noto Naskh Arabic", serif`;
+      `400 96px "Al Qalam Quran", "Amiri", "Noto Naskh Arabic", serif`);
+    ctx.font = `400 ${arabicFontSize}px "Al Qalam Quran", "Amiri", "Noto Naskh Arabic", serif`;
     const arabicLines = wrapText(ctx, v.arabic, TEXT_W * 0.92);
     const arabicLineH = arabicFontSize * 1.85;
     const arabicH = arabicLines.length * arabicLineH;
 
     // English
     const engFontSize = fitText(ctx, v.english, TEXT_W, Math.round(32 * mobileScale), Math.round(48 * mobileScale),
-      `400 48px "Cormorant Garamond", "Georgia", serif`);
-    ctx.font = `400 ${engFontSize}px "Cormorant Garamond", "Georgia", serif`;
+      `400 48px "Playfair Display", "Cormorant Garamond", "Georgia", serif`);
+    ctx.font = `400 ${engFontSize}px "Playfair Display", "Cormorant Garamond", "Georgia", serif`;
     const engLines = wrapText(ctx, v.english, TEXT_W);
     const engLineH = engFontSize * 1.7;
     const engH = engLines.length * engLineH;
@@ -791,7 +798,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
     ? `${surahName}  ·  ${surahNum}:${verses[0].verseNum}`
     : `${surahName}  ·  ${surahNum}:${verses[0].verseNum}–${verses[verses.length-1].verseNum}`;
   ctx.direction = 'ltr';
-  ctx.font = `400 ${Math.round(32 * mobileScale)}px "Cormorant Garamond", "Georgia", serif`;
+  ctx.font = `400 ${Math.round(32 * mobileScale)}px "Playfair Display", "Cormorant Garamond", "Georgia", serif`;
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   ctx.shadowColor = 'rgba(0,0,0,0.5)';
   ctx.shadowBlur = 4;
@@ -815,7 +822,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
 
     // Arabic
     ctx.direction = 'rtl';
-    ctx.font = `400 ${s.arabicFontSize}px "Amiri", "Noto Naskh Arabic", serif`;
+    ctx.font = `400 ${s.arabicFontSize}px "Al Qalam Quran", "Amiri", "Noto Naskh Arabic", serif`;
     for (const line of s.arabicLines) {
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 12;
@@ -832,16 +839,13 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
     drawOrnament(ctx, W / 2, curY, W * 0.12);
     curY += GAP_AFTER_ARABIC;
 
-    // English
+    // English (no stroke — elegant, clean)
     ctx.direction = 'ltr';
-    ctx.font = `400 ${s.engFontSize}px "Cormorant Garamond", "Georgia", serif`;
+    ctx.font = `400 ${s.engFontSize}px "Playfair Display", "Cormorant Garamond", "Georgia", serif`;
     for (const line of s.engLines) {
       ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.75)'; ctx.shadowBlur = 10;
-      ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = s.engFontSize * 0.07; ctx.lineJoin = 'round';
-      ctx.strokeText(line, W / 2, curY);
-      ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 4;
-      ctx.fillStyle = '#ffffff'; ctx.fillText(line, W / 2, curY);
+      ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 8;
+      ctx.fillStyle = 'rgba(255,253,245,0.92)'; ctx.fillText(line, W / 2, curY);
       ctx.restore();
       curY += s.engLineH;
     }
@@ -1286,12 +1290,12 @@ async function createVideo() {
 
     const cleanup = () => {
       try { src.stop(); src.disconnect(); } catch(e){}
-      clearInterval(drawTimer); rec.remove();
+      clearInterval(window._drawTimer); rec.remove();
       audioCtx.close();
     };
 
     mediaRecorder.onstop = () => {
-      clearInterval(timerInterval); clearInterval(drawTimer);
+      clearInterval(timerInterval); clearInterval(window._drawTimer);
       recBar.classList.remove('visible');
       window.removeEventListener('beforeunload', window._stopRecording);
       cleanup();
@@ -1312,7 +1316,7 @@ async function createVideo() {
     };
 
     mediaRecorder.onerror = () => {
-      clearInterval(timerInterval); clearInterval(drawTimer);
+      clearInterval(timerInterval); clearInterval(window._drawTimer);
       recBar.classList.remove('visible');
       window.removeEventListener('beforeunload', window._stopRecording);
       cleanup();
@@ -1339,7 +1343,7 @@ async function createVideo() {
     // Stop button + beforeunload
     window._stopRecording = () => {
       if (mediaRecorder.state === 'recording') {
-        clearInterval(timerInterval); clearInterval(drawTimer);
+        clearInterval(timerInterval); clearInterval(window._drawTimer);
         mediaRecorder.stop();
         recBar.classList.remove('visible');
         btnVideo.textContent = '💾 Saving…';
@@ -1347,20 +1351,35 @@ async function createVideo() {
     };
     window.addEventListener('beforeunload', window._stopRecording);
 
-    // Keep feeding frames during recording (some browsers pause capture on static canvas)
-    let drawTimer = setInterval(() => {
-      if (mediaRecorder.state !== 'recording') { clearInterval(drawTimer); return; }
+    // Keep feeding frames + animated sparkles
+    const sparkles = Array.from({length: 35}, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      s: Math.random() * 4 + 2, a: Math.random() * 0.3 + 0.05,
+      da: (Math.random() - 0.5) * 0.05, dy: -(0.2 + Math.random() * 0.4),
+      hue: Math.random() < 0.3 ? 45 : 0 // some gold, mostly white
+    }));
+    window._drawTimer = setInterval(() => {
+      if (mediaRecorder.state !== 'recording') { clearInterval(window._drawTimer); return; }
       rctx.clearRect(0, 0, W, H);
       rctx.drawImage(mainCanvas, 0, 0);
-      // Re-draw reciter name each frame (only if checked)
-      if (document.getElementById('showReciter').checked) {
-        rctx.font = 'italic 28px "Cormorant Garamond", serif';
-        rctx.fillStyle = 'rgba(255,255,255,0.55)';
-        rctx.shadowColor = 'rgba(0,0,0,0.6)'; rctx.shadowBlur = 4;
-        rctx.textAlign = 'center';
-        rctx.fillText('🎙 ' + reciterName, W / 2, H - 60);
-        rctx.shadowBlur = 0;
-        rctx.textAlign = 'start';
+      // ✨ Sparkles
+      for (const sp of sparkles) {
+        sp.a += sp.da;
+        if (sp.a <= 0.15) sp.da = Math.abs(sp.da);
+        if (sp.a >= 1) sp.da = -Math.abs(sp.da);
+        sp.y += sp.dy;
+        if (sp.y < -20 || sp.y > H + 20) { sp.y = H + 20; sp.x = Math.random() * W; sp.a = 0.2; }
+        // 4-point star
+        rctx.save();
+        rctx.translate(sp.x, sp.y);
+        const color = sp.hue ? `rgba(255,235,140,${sp.a.toFixed(2)})` : `rgba(255,255,255,${sp.a.toFixed(2)})`;
+        rctx.fillStyle = color;
+        rctx.beginPath();
+        const o = sp.s * 0.35, i = sp.s;
+        rctx.moveTo(0, -i); rctx.lineTo(o, -o); rctx.lineTo(i, 0); rctx.lineTo(o, o);
+        rctx.lineTo(0, i); rctx.lineTo(-o, o); rctx.lineTo(-i, 0); rctx.lineTo(-o, -o);
+        rctx.closePath(); rctx.fill();
+        rctx.restore();
       }
     }, 100);
 
