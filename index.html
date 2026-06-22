@@ -7,6 +7,29 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+<script>
+// Fix: @ffmpeg/ffmpeg@0.12.x loads its worker from unpkg.com (cross-origin),
+// which browsers block under Same-Origin Policy for Worker scripts.
+// Wrapping cross-origin worker URLs in a same-origin blob that calls importScripts()
+// is the canonical workaround — importScripts() allows cross-origin URLs with CORS.
+;(function(){
+  var _Worker = window.Worker;
+  window.Worker = function(url, options){
+    var href = url instanceof URL ? url.href : typeof url === 'string' ? url : null;
+    if(href && href.indexOf('://') !== -1 && href.indexOf(location.origin) !== 0 && href.indexOf('blob:') !== 0){
+      var code = 'importScripts('+JSON.stringify(href)+')';
+      var blob = new Blob([code],{type:'application/javascript'});
+      var blobURL = URL.createObjectURL(blob);
+      var opts = options ? Object.assign({},options) : {};
+      delete opts.type; // importScripts requires classic (non-module) worker
+      return new _Worker(blobURL, opts);
+    }
+    return new _Worker(url, options);
+  };
+  window.Worker.prototype = _Worker.prototype;
+})();
+</script>
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
 <style>
   :root {
     --bg: #0a0a0f;
@@ -389,22 +412,21 @@
 </div>
 
 <div class="quick-pick">
-  <button onclick="quickPick(1,1)">Al-Fatiha 1</button>
-  <button onclick="quickPick(2,255)">Ayat al-Kursi</button>
-  <button onclick="quickPick(36,1)">Ya-Sin 1</button>
-  <button onclick="quickPick(55,1)">Ar-Rahman 1</button>
-  <button onclick="quickPick(67,1)">Al-Mulk 1</button>
-  <button onclick="quickPick(112,1)">Al-Ikhlas</button>
-  <button onclick="quickPick(113,1)">Al-Falaq</button>
-  <button onclick="quickPick(114,1)">An-Nas</button>
-  <button onclick="quickPick(1,'1-7')">Al-Fatiha 1-7</button>
-  <button onclick="quickPick(78,'1-5')">An-Naba 1-5</button>
+ <button onclick="quickPick(1,'1-7')">Al-Fatiha</button>
+  <button onclick="quickPick(2,255')">Ayat al-Kursi</button>
+  <button onclick="quickPick(110,'1-3')">An-Nasr</button>
+  <button onclick="quickPick(106,'1-4')">Quraish</button>
+  <button onclick="quickPick(109,'1-6')">Al-Kafirun</button>
+  <button onclick="quickPick(112,'1-4')">Al-Ikhlas</button>
+  <button onclick="quickPick(113,'1-5')">Al-Falaq</button>
+  <button onclick="quickPick(114,'1-6')">An-Nas</button>
+  <button onclick="quickPick(78,'1-5')">An-Naba</button>
 </div>
 
 <div class="controls">
   <div class="input-group">
-    <label>Surah #</label>
-    <input type="number" id="surah" value="1" min="1" max="114" placeholder="1-114" oninput="updateVerseInfo()">
+    <label>Surah</label>
+    <select class="reciter-select" id="surah" onchange="updateVerseInfo()"></select>
   </div>
   <div class="input-group">
     <label>Verse #</label>
@@ -456,7 +478,7 @@
     <video id="previewVideo" controls style="width:100%;max-width:720px;border-radius:12px"></video>
   </div>
   <div class="vid-compat" id="vidCompat" style="display:none">
-    ⚠️ WebM format — not accepted by WhatsApp/Telegram. Use Edge/Safari for MP4, or convert with a free tool.
+    Preparing a WhatsApp-ready MP4 with AAC audio...
   </div>
   <div class="recording-bar" id="recordingBar" style="display:none">
     <span class="rec-dot"></span>
@@ -670,6 +692,18 @@ function getSurahName(num) {
   return names[num] || `Surah ${num}`;
 }
 
+function initSurahSelect() {
+  const select = document.getElementById('surah');
+  if (!select || select.options.length) return;
+  for (let s = 1; s <= 114; s++) {
+    const option = document.createElement('option');
+    option.value = String(s);
+    option.textContent = `${s}. ${getSurahName(s)}`;
+    select.appendChild(option);
+  }
+  select.value = '1';
+}
+
 // ===== RENDER TO CANVAS (supports multiple verses) =====
 async function renderCanvas(verses, surahName, surahNum, imageUrl) {
   // verses = [{arabic, english, urdu, verseNum}, ...]
@@ -686,7 +720,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
 
   // Measure all content first
   let sections = [];
-  const GAP_BETWEEN_VERSES = 40;
+  const GAP_BETWEEN_VERSES = 15;
 
   for (let vi = 0; vi < verses.length; vi++) {
     const v = verses[vi];
@@ -1126,9 +1160,168 @@ function getVerseAudioUrl(surah, verse, reciter) {
   return `https://everyayah.com/data/${reciter}/${ss}${vv}.mp3`;
 }
 
-// ===== CREATE VIDEO — simple, reliable =====
+// ===== CREATE VIDEO - WhatsApp-friendly MP4/AAC, long-range safe =====
 let mediaRecorder = null;
 let recordedChunks = [];
+
+function getWhatsAppRecorderOptions() {
+  const ua = navigator.userAgent;
+  const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua);
+  const mp4Candidates = [
+    'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+    'video/mp4;codecs="avc1.4D401E,mp4a.40.2"',
+    'video/mp4;codecs="h264,aac"',
+    'video/mp4'
+  ];
+  const webmCandidates = [
+    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=vp9,opus',
+    'video/webm'
+  ];
+
+  // Chrome/Edge may report MP4 support but produce empty blobs for canvas + WebAudio.
+  // Record WebM there first, then convert to WhatsApp-ready MP4/AAC.
+  if (!isSafari) {
+    for (const mimeType of webmCandidates) {
+      if (MediaRecorder.isTypeSupported(mimeType)) {
+        return {
+          mimeType,
+          ext: 'webm',
+          needsTranscode: true,
+          videoBitsPerSecond: 6000000,
+          audioBitsPerSecond: 128000
+        };
+      }
+    }
+  }
+
+  for (const mimeType of mp4Candidates) {
+    if (MediaRecorder.isTypeSupported(mimeType)) {
+      return {
+        mimeType,
+        ext: 'mp4',
+        needsTranscode: false,
+        videoBitsPerSecond: 6000000,
+        audioBitsPerSecond: 128000
+      };
+    }
+  }
+
+  for (const mimeType of webmCandidates) {
+    if (MediaRecorder.isTypeSupported(mimeType)) {
+      return {
+        mimeType,
+        ext: 'webm',
+        needsTranscode: true,
+        videoBitsPerSecond: 6000000,
+        audioBitsPerSecond: 128000
+      };
+    }
+  }
+  throw new Error('Video recording is not supported in this browser.');
+}
+
+let ffmpegConverter = null;
+async function getFFmpegConverter() {
+  // @ffmpeg/ffmpeg@0.12.x uses single-thread core — no SharedArrayBuffer needed
+  const FFmpegNS = window.FFmpegWASM;
+  if (!FFmpegNS || !FFmpegNS.FFmpeg) {
+    throw new Error('Video converter failed to load. Check your internet connection and try again.');
+  }
+  if (!ffmpegConverter) {
+    ffmpegConverter = new FFmpegNS.FFmpeg();
+  }
+  if (!ffmpegConverter.loaded) {
+    await ffmpegConverter.load({
+      coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+      wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
+    });
+  }
+  return ffmpegConverter;
+}
+
+async function convertToWhatsAppMp4(blob, statusEl) {
+  if (blob.type.includes('mp4')) return blob;
+  if (statusEl) statusEl.textContent = 'Converting to WhatsApp MP4/AAC...';
+  const ffmpeg = await getFFmpegConverter();
+  const inputName = 'input.webm';
+  const outputName = 'output.mp4';
+  await ffmpeg.writeFile(inputName, new Uint8Array(await blob.arrayBuffer()));
+  try {
+    let ok = false;
+    try {
+      const code = await ffmpeg.exec([
+        '-i', inputName,
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-movflags', 'faststart',
+        outputName
+      ]);
+      ok = code === 0;
+    } catch (firstErr) {
+      console.warn('[Video] H.264 conversion failed, retrying MPEG-4:', firstErr);
+    }
+    if (!ok) {
+      const code = await ffmpeg.exec([
+        '-i', inputName,
+        '-c:v', 'mpeg4',
+        '-q:v', '4',
+        '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-movflags', 'faststart',
+        outputName
+      ]);
+      ok = code === 0;
+      if (!ok) throw new Error('Video conversion failed');
+    }
+    const data = await ffmpeg.readFile(outputName);
+    return new Blob([data], { type: 'video/mp4' });
+  } finally {
+    try { await ffmpeg.deleteFile(inputName); } catch(e) {}
+    try { await ffmpeg.deleteFile(outputName); } catch(e) {}
+  }
+}
+
+async function fetchDecodedVerse(audioCtx, surah, verseNum, reciter) {
+  const resp = await fetch(getVerseAudioUrl(surah, verseNum, reciter));
+  if (!resp.ok) throw new Error(`Audio not found for verse ${verseNum}`);
+  return audioCtx.decodeAudioData(await resp.arrayBuffer());
+}
+
+function startAudioBuffer(audioCtx, destNode, buffer, options = {}) {
+  const fadeSeconds = Math.min((options.fadeMs || 50) / 1000, Math.max(0, buffer.duration / 2 - 0.005));
+  const startAt = Math.max(options.startAt || audioCtx.currentTime, audioCtx.currentTime);
+  const src = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  const shouldFadeIn = options.fadeIn !== false && fadeSeconds > 0;
+  const shouldFadeOut = options.fadeOut !== false && fadeSeconds > 0;
+
+  src.buffer = buffer;
+  src.connect(gain);
+  gain.connect(destNode);
+  gain.connect(audioCtx.destination);
+  gain.gain.cancelScheduledValues(startAt);
+  gain.gain.setValueAtTime(shouldFadeIn ? 0 : 1, startAt);
+  if (shouldFadeIn) gain.gain.linearRampToValueAtTime(1, startAt + fadeSeconds);
+  if (shouldFadeOut) {
+    const fadeOutStart = Math.max(startAt, startAt + buffer.duration - fadeSeconds);
+    gain.gain.setValueAtTime(1, fadeOutStart);
+    gain.gain.linearRampToValueAtTime(0, startAt + buffer.duration);
+  }
+
+  const done = new Promise((resolve) => {
+    src.onended = () => {
+      try { src.disconnect(); gain.disconnect(); } catch(e) {}
+      resolve();
+    };
+  });
+  src.start(startAt);
+  return { src, done, endAt: startAt + buffer.duration };
+}
 
 async function createVideo() {
   const btnVideo = document.getElementById('btnVideo');
@@ -1145,79 +1338,11 @@ async function createVideo() {
   recordedChunks = [];
 
   try {
-    // ---- Decode all verses, trim silence, crossfade into ONE seamless buffer ----
-    btnVideo.textContent = '⏳ Loading audio…';
+    const recorderOptions = getWhatsAppRecorderOptions();
+    btnVideo.textContent = '⏳ Loading first verse…';
     const audioCtx = new AudioContext();
     await audioCtx.resume();
-    const rawBuffers = [];
-
-    for (let i = 0; i < verses.length; i++) {
-      const resp = await fetch(getVerseAudioUrl(surah, verses[i].verseNum, reciter));
-      if (!resp.ok) throw new Error(`Audio not found for verse ${verses[i].verseNum}`);
-      const buf = await audioCtx.decodeAudioData(await resp.arrayBuffer());
-      rawBuffers.push(buf);
-      console.log('[Video] Verse', verses[i].verseNum, ':', buf.duration.toFixed(1), 's');
-      btnVideo.textContent = `⏳ ${i+1}/${verses.length}…`;
-    }
-
-    // Trim silence from edges + compute crossfade regions
-    const TRIM_START = 0.05;  // minimal — just remove click
-    const TRIM_END = 0.05;
-    const FADE_MS = 0.10;     // crossfade duration
-    const sr = rawBuffers[0].sampleRate;
-    const ch = rawBuffers[0].numberOfChannels;
-
-    const trimmed = rawBuffers.map((buf, i) => {
-      const sTrim = (i === 0) ? 0 : Math.floor(TRIM_START * sr);
-      const eTrim = (i === rawBuffers.length - 1) ? 0 : Math.floor(TRIM_END * sr);
-      const newLen = buf.length - sTrim - eTrim;
-      if (newLen <= 0) return buf; // safeguard
-      const t = audioCtx.createBuffer(ch, newLen, sr);
-      for (let c = 0; c < ch; c++) t.getChannelData(c).set(buf.getChannelData(c).subarray(sTrim, sTrim + newLen));
-      return t;
-    });
-
-    // Crossfade: overlap last FADE of prev with first FADE of next
-    const fadeLen = Math.floor(FADE_MS * sr);
-
-    // Compute total merged length
-    let mergedLen = trimmed[0].length;
-    for (let i = 1; i < trimmed.length; i++) {
-      mergedLen += trimmed[i].length - Math.min(fadeLen, trimmed[i-1].length, trimmed[i].length);
-    }
-    const combined = audioCtx.createBuffer(ch, Math.max(1, mergedLen), sr);
-
-    // First buffer: copy entire (fade-out will be overwritten during crossfade)
-    let writePos = 0;
-    for (let c = 0; c < ch; c++) combined.getChannelData(c).set(trimmed[0].getChannelData(c), 0);
-    writePos = trimmed[0].length;
-
-    // Subsequent buffers: crossfade with previous
-    for (let i = 1; i < trimmed.length; i++) {
-      const prevBuf = trimmed[i - 1];
-      const nextBuf = trimmed[i];
-      const overlap = Math.min(fadeLen, prevBuf.length, nextBuf.length);
-      const fadeStart = writePos - overlap; // where crossfade begins in combined
-
-      for (let c = 0; c < ch; c++) {
-        const cb = combined.getChannelData(c);
-        const pb = prevBuf.getChannelData(c);
-        const nb = nextBuf.getChannelData(c);
-
-        // Apply fade-out to previous buffer's tail (already written)
-        for (let j = 0; j < overlap; j++) {
-          cb[fadeStart + j] = pb[prevBuf.length - overlap + j] * (1 - j / overlap)
-                            + nb[j] * (j / overlap);
-        }
-
-        // Copy remaining next buffer (after overlap region)
-        cb.set(nb.subarray(overlap), writePos);
-      }
-
-      writePos += nextBuf.length - overlap;
-    }
-    console.log('[Video] Combined:', combined.duration.toFixed(1), 's,', verses.length, 'verses');
-    const totalDuration = combined.duration;
+    let nextBufferPromise = fetchDecodedVerse(audioCtx, surah, verses[0].verseNum, reciter);
 
     // ---- Setup recording canvas (appended to DOM to ensure captureStream works) ----
     const mainCanvas = document.getElementById('canvas');
@@ -1252,23 +1377,13 @@ async function createVideo() {
       console.log('[Video] captureStream OK');
     } catch (e) {
       rec.remove();
-      URL.revokeObjectURL(audioURL);
       btnVideo.disabled = false; btnVideo.textContent = '🎬 Create Video';
       showError('Video capture failed. Use Chrome or Edge.');
       return;
     }
 
-    // ---- Single buffer → single source → zero gaps ----
+    // ---- Stream decoded verses one by one to avoid huge memory use on long ranges ----
     const destNode = audioCtx.createMediaStreamDestination();
-    const src = audioCtx.createBufferSource();
-    src.buffer = combined;
-    src.connect(destNode);
-    src.connect(audioCtx.destination);
-    src.start();
-    src.onended = () => { try { src.disconnect(); } catch(e){} };
-
-    console.log('[Video] Playing single combined buffer');
-
     let combinedStream = stream;
     const at = destNode.stream.getAudioTracks()[0];
     if (at) {
@@ -1276,43 +1391,63 @@ async function createVideo() {
       console.log('[Video] Audio track merged');
     }
 
-    let mime, bitrate;
-    if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) { mime='video/mp4;codecs=avc1'; bitrate=20000000; }
-    else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) { mime='video/webm;codecs=vp9'; bitrate=20000000; }
-    else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) { mime='video/webm;codecs=vp8'; bitrate=20000000; }
-    else { mime='video/webm'; bitrate=12000000; }
-    const ext = mime.startsWith('video/mp4')?'mp4':'webm';
+    mediaRecorder = new MediaRecorder(combinedStream, {
+      mimeType: recorderOptions.mimeType,
+      videoBitsPerSecond: recorderOptions.videoBitsPerSecond,
+      audioBitsPerSecond: recorderOptions.audioBitsPerSecond
+    });
+    console.log('[Video] Recorder:', recorderOptions.mimeType, recorderOptions.needsTranscode ? '→ converts to MP4/AAC' : '→ MP4/AAC');
 
-    mediaRecorder = new MediaRecorder(combinedStream, { mimeType:mime, videoBitsPerSecond:bitrate });
-    console.log('[Video] Codec:', mime, (bitrate/1e6).toFixed(0), 'Mbps → .'+ext);
+    const recBar = document.getElementById('recordingBar');
+    const recTimer = document.getElementById('recTimer');
+    let recSeconds = 0;
+    let timerInterval = null;
 
     mediaRecorder.ondataavailable = (e) => { if (e.data?.size>0) { recordedChunks.push(e.data); console.log('[Video] Chunk:', (e.data.size/1024).toFixed(0), 'KB'); } };
 
+    let cleanedUp = false;
     const cleanup = () => {
-      try { src.stop(); src.disconnect(); } catch(e){}
+      if (cleanedUp) return;
+      cleanedUp = true;
+      if (window._activeAudioSources) {
+        window._activeAudioSources.forEach(src => { try { src.stop(); } catch(e) {} });
+        window._activeAudioSources = [];
+      }
       clearInterval(window._drawTimer); rec.remove();
       audioCtx.close();
     };
 
-    mediaRecorder.onstop = () => {
+    mediaRecorder.onstop = async () => {
       clearInterval(timerInterval); clearInterval(window._drawTimer);
       recBar.classList.remove('visible');
       window.removeEventListener('beforeunload', window._stopRecording);
       cleanup();
       console.log('[Video] Done. Chunks:', recordedChunks.length);
       if (!recordedChunks.length) { btnVideo.disabled=false; btnVideo.textContent='🎬 Create Video'; showError('No video data. Try a different browser.'); return; }
-      const blob = new Blob(recordedChunks, { type:mime });
-      console.log('[Video] Output:', (blob.size/1024).toFixed(0), 'KB');
-      const vLabel = verses.length===1 ? String(verses[0].verseNum) : `${verses[0].verseNum}-${verses[verses.length-1].verseNum}`;
-      const url = URL.createObjectURL(blob);
-      // Save for preview
-      window._lastVideoURL = url;
-      window._lastVideoName = `quran-${surah}-${vLabel}.${ext}`;
-      window._lastVideoMime = mime;
-      document.getElementById('btnPlay').style.display = '';
-      document.getElementById('btnDownloadVid').style.display = '';
-      document.getElementById('vidCompat').classList.toggle('visible', ext === 'webm');
-      btnVideo.disabled=false; btnVideo.textContent='🎬 Create Video';
+      try {
+        btnVideo.textContent = recorderOptions.needsTranscode ? 'Converting to MP4, Please Wait' : 'Saving...';
+        const rawBlob = new Blob(recordedChunks, { type:recorderOptions.mimeType });
+        console.log('[Video] Raw output:', (rawBlob.size/1024).toFixed(0), 'KB');
+        const statusEl = document.getElementById('loaderText');
+        document.getElementById('vidCompat').classList.toggle('visible', recorderOptions.needsTranscode);
+        const blob = await convertToWhatsAppMp4(rawBlob, statusEl);
+        console.log('[Video] WhatsApp MP4 output:', (blob.size/1024).toFixed(0), 'KB');
+        const vLabel = verses.length===1 ? String(verses[0].verseNum) : `${verses[0].verseNum}-${verses[verses.length-1].verseNum}`;
+        const url = URL.createObjectURL(blob);
+        // Save for preview
+        window._lastVideoURL = url;
+        window._lastVideoName = `quran-${surah}-${vLabel}.mp4`;
+        window._lastVideoMime = 'video/mp4';
+        document.getElementById('btnPlay').style.display = '';
+        document.getElementById('btnDownloadVid').style.display = '';
+        document.getElementById('vidCompat').classList.remove('visible');
+      } catch (err) {
+        console.error('[Video] Conversion failed:', err);
+        showError(`Video conversion failed: ${err.message}`);
+      } finally {
+        document.getElementById('vidCompat').classList.remove('visible');
+        btnVideo.disabled=false; btnVideo.textContent='🎬 Create Video';
+      }
     };
 
     mediaRecorder.onerror = () => {
@@ -1323,17 +1458,14 @@ async function createVideo() {
       btnVideo.disabled=false; btnVideo.textContent='🎬 Create Video';
     };
 
-    // ---- Start: timer-based stop (audio is pre-scheduled) ----
-    mediaRecorder.start(500);
+    // ---- Start: stop when the last verse finishes, with no fixed time limit ----
+    mediaRecorder.start(250);
     btnVideo.textContent = '🔴 Recording…';
-    console.log('[Video] Started, ends in', totalDuration.toFixed(1), 's');
+    console.log('[Video] Started; recording until all verses finish');
 
     // Show recording bar with live timer
-    const recBar = document.getElementById('recordingBar');
-    const recTimer = document.getElementById('recTimer');
     recBar.classList.add('visible');
-    let recSeconds = 0;
-    let timerInterval = setInterval(() => {
+    timerInterval = setInterval(() => {
       recSeconds++;
       const m = Math.floor(recSeconds / 60);
       const s = recSeconds % 60;
@@ -1383,13 +1515,42 @@ async function createVideo() {
       }
     }, 100);
 
-    setTimeout(() => {
-      if (mediaRecorder.state === 'recording') { mediaRecorder.stop(); btnVideo.textContent = '💾 Saving…'; }
-    }, (totalDuration + 0.8) * 1000);
-
-    setTimeout(() => {
-      if (mediaRecorder.state === 'recording') { mediaRecorder.stop(); btnVideo.textContent = '💾 Saving…'; }
-    }, 300000);
+    (async () => {
+      try {
+        const CROSSFADE_MS = 50;
+        const activeSources = [];
+        let previousPlayback = null;
+        for (let i = 0; i < verses.length; i++) {
+          btnVideo.textContent = `🔴 Recording ${i + 1}/${verses.length}…`;
+          const currentBuffer = await nextBufferPromise;
+          if (i + 1 < verses.length) {
+            nextBufferPromise = fetchDecodedVerse(audioCtx, surah, verses[i + 1].verseNum, reciter);
+          }
+          const startAt = previousPlayback ? previousPlayback.endAt - (CROSSFADE_MS / 1000) : audioCtx.currentTime;
+          const playback = startAudioBuffer(audioCtx, destNode, currentBuffer, {
+            startAt,
+            fadeMs: CROSSFADE_MS,
+            fadeIn: i > 0,
+            fadeOut: i < verses.length - 1
+          });
+          activeSources.push(playback.src);
+          window._activeAudioSources = activeSources;
+          if (previousPlayback) await previousPlayback.done;
+          previousPlayback = playback;
+          if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
+        }
+        if (previousPlayback) await previousPlayback.done;
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.requestData();
+          mediaRecorder.stop();
+          btnVideo.textContent = '💾 Saving…';
+        }
+      } catch (err) {
+        console.error('[Video] Audio sequence failed:', err);
+        if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+        showError(`Video audio failed: ${err.message}`);
+      }
+    })();
 
   } catch (err) {
     console.error('[Video] Fatal:', err);
@@ -1420,7 +1581,7 @@ function playPreview() {
 
 function downloadVideo() {
   if (window._lastVideoURL) {
-    triggerDownload(window._lastVideoURL, window._lastVideoName || 'quran-recitation.webm');
+    triggerDownload(window._lastVideoURL, window._lastVideoName || 'quran-recitation.mp4');
   }
 }
 
@@ -1439,6 +1600,7 @@ document.addEventListener('keydown', (e) => {
 
 // Load English Quran in background
 loadEnglishQuran().catch(console.warn);
+initSurahSelect();
 updateVerseInfo();
 </script>
 </body>
