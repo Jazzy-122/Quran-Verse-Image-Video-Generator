@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-<head>
+<head><base href="autoclaw-local-html://ba9b29ca-9767-4c5e-ae49-0fca1add292b/C%3A/Users/jahan/.openclaw-autoclaw/workspace/quran-generator-fixed.html">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quran Verse Image / Video Generator</title>
@@ -143,7 +143,7 @@
     cursor: not-allowed;
   }
 
-  /* Reciter Select */
+  /* Select styling */
   .reciter-select {
     background: var(--surface);
     border: 1px solid rgba(255,255,255,0.08);
@@ -154,10 +154,29 @@
     font-family: inherit;
     cursor: pointer;
     transition: all 0.2s;
+    max-width: 280px;
   }
   .reciter-select:focus {
     outline: none;
     border-color: var(--gold);
+  }
+  .surah-select {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 220px;
+    max-width: 300px;
+  }
+  .surah-select:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(212,168,83,0.15);
   }
   .reciter-label {
     font-size: 0.75rem;
@@ -166,6 +185,32 @@
     color: var(--muted);
     margin-right: 8px;
     font-weight: 600;
+  }
+
+  /* Reciter checkbox */
+  .reciter-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    transition: all 0.2s;
+  }
+  .reciter-check:hover {
+    border-color: rgba(212,168,83,0.3);
+    color: var(--text);
+  }
+  .reciter-check input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--gold);
+    cursor: pointer;
   }
 
   .verse-info {
@@ -359,7 +404,8 @@
     .input-group label { font-size: 0.7rem; }
     .input-group input { font-size: 0.95rem; padding: 12px 14px; }
     .reciter-wrapper { flex-direction: column; align-items: flex-start; gap: 6px; }
-    .reciter-select { width: 100%; font-size: 0.9rem; padding: 12px; }
+    .reciter-select { width: 100%; font-size: 0.9rem; padding: 12px; max-width: none; }
+    .surah-select { width: 100%; font-size: 0.9rem; padding: 12px; max-width: none; }
     .verse-info { font-size: 0.8rem; padding: 10px 14px; }
     .quick-pick { gap: 6px; }
     .quick-pick button { font-size: 0.75rem; padding: 8px 12px; }
@@ -372,7 +418,8 @@
     .rec-timer { font-size: 1.1rem; }
     footer { padding: 20px; font-size: 0.7rem; }
   }
-/* Al Qalam Quran font */
+
+  /* Al Qalam Quran font */
   @font-face {
     font-family: 'Al Qalam Quran';
     src: url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/al-qalam-quran-majeed.woff2') format('woff2'),
@@ -384,13 +431,13 @@
 <body>
 
 <div class="app-header">
-  <h1>âœ¦ Quran Verse Image / Video Generator âœ¦</h1>
-  <p class="subtitle">Arabic Â· English Â· Urdu â€” on beautiful nature imagery</p>
+  <h1>✦ Quran Verse Image / Video Generator ✦</h1>
+  <p class="subtitle">Arabic · English · Urdu — on beautiful nature imagery</p>
 </div>
 
 <div class="quick-pick">
-<button onclick="quickPick(1,'1-7')">Al-Fatiha</button>
-  <button onclick="quickPick(2,255')">Ayat al-Kursi</button>
+  <button onclick="quickPick(1,'1-7')">Al-Fatiha</button>
+  <button onclick="quickPick(2,'255')">Ayat al-Kursi</button>
   <button onclick="quickPick(110,'1-3')">An-Nasr</button>
   <button onclick="quickPick(106,'1-4')">Quraish</button>
   <button onclick="quickPick(109,'1-6')">Al-Kafirun</button>
@@ -403,15 +450,15 @@
 <div class="controls">
   <div class="input-group">
     <label>Surah</label>
-    <select class="reciter-select" id="surah" onchange="updateVerseInfo()"></select>
+    <select class="surah-select" id="surah" onchange="updateVerseInfo()"></select>
   </div>
   <div class="input-group">
     <label>Verse #</label>
     <input type="text" id="verse" value="1" placeholder="e.g. 1 or 1-5">
   </div>
   <div class="verse-info" id="verseInfo">7 verses</div>
-  <button class="btn btn-generate" id="btnGenerate" onclick="generate()">âœ¦ Generate</button>
-  <span class="reciter-label">ðŸŽ™ Reciter</span>
+  <button class="btn btn-generate" id="btnGenerate" onclick="generate()">✦ Generate</button>
+  <span class="reciter-label">🎙 Reciter</span>
   <select class="reciter-select" id="reciter">
     <option value="Alafasy_128kbps">Mishary Alafasy</option>
     <option value="Abdul_Basit_Murattal_192kbps">Abdul Basit (Murattal)</option>
@@ -429,13 +476,13 @@
     <option value="Abdul_Basit_Mujawwad_128kbps">Abdul Basit (Mujawwad)</option>
   </select>
   <label class="reciter-check">
-    <input type="checkbox" id="showReciter" onchange="generate()"> ðŸŽ™ Show reciter on image</label>
+    <input type="checkbox" id="showReciter"> 🎙 Show reciter on image
   </label>
 </div>
 
 <div class="loader" id="loader">
   <div class="spinner"></div>
-  <p id="loaderText">Fetching verseâ€¦</p>
+  <p id="loaderText">Fetching verse…</p>
 </div>
 
 <div class="error" id="error"></div>
@@ -445,11 +492,11 @@
     <canvas id="canvas"></canvas>
   </div>
   <div class="actions">
-    <button class="btn btn-download" onclick="downloadImage()">â¬‡ Download Image</button>
-    <button class="btn btn-video" id="btnVideo" onclick="createVideo()">ðŸŽ¬ Create Video</button>
-    <button class="btn btn-play" id="btnPlay" style="display:none" onclick="playPreview()">â–¶ Play Preview</button>
-    <button class="btn btn-download" id="btnDownloadVid" style="display:none" onclick="downloadVideo()">â¬‡ Download Video</button>
-    <button class="btn btn-generate" onclick="generate()">ðŸ”„ Generate New</button>
+    <button class="btn btn-download" onclick="downloadImage()">⬇ Download Image</button>
+    <button class="btn btn-video" id="btnVideo" onclick="createVideo()">🎬 Create Video</button>
+    <button class="btn btn-play" id="btnPlay" style="display:none" onclick="playPreview()">▶ Play Preview</button>
+    <button class="btn btn-download" id="btnDownloadVid" style="display:none" onclick="downloadVideo()">⬇ Download Video</button>
+    <button class="btn btn-generate" onclick="generate()">🔄 Generate New</button>
   </div>
   <div class="video-preview" id="videoPreview" style="display:none">
     <video id="previewVideo" controls style="width:100%;max-width:720px;border-radius:12px"></video>
@@ -460,7 +507,7 @@
   <div class="recording-bar" id="recordingBar" style="display:none">
     <span class="rec-dot"></span>
     <span class="rec-timer" id="recTimer">0:00</span>
-    <button class="btn btn-stop" id="btnStop" onclick="stopRecording()">â¹ Stop</button>
+    <button class="btn btn-stop" id="btnStop" onclick="stopRecording()">⏹ Stop</button>
   </div>
 </div>
 
@@ -491,20 +538,16 @@ async function loadEnglishQuran() {
   );
   if (!resp.ok) throw new Error('Failed to load English translation');
   const data = await resp.json();
-  // CDN format: { quran: [{ chapter, verse, text }, ...] }
   englishQuran = data.quran || data;
   return englishQuran;
 }
 
-// Preload on page load
 loadEnglishQuran().catch(() => {});
 
 // ===== COMPUTE ABSOLUTE VERSE INDEX =====
 function getAbsoluteVerseIndex(surah, verse) {
   let idx = 0;
-  for (let s = 1; s < surah; s++) {
-    idx += VERSE_COUNTS[s];
-  }
+  for (let s = 1; s < surah; s++) idx += VERSE_COUNTS[s];
   idx += verse - 1;
   return idx;
 }
@@ -533,17 +576,15 @@ function cleanTranslationText(text) {
 async function getEnglishTranslation(surah, verse) {
   const quran = await loadEnglishQuran();
   const idx = getAbsoluteVerseIndex(surah, verse);
-  if (idx >= 0 && idx < quran.length) {
-    return quran[idx].text;
-  }
+  if (idx >= 0 && idx < quran.length) return quran[idx].text;
   return null;
 }
 
-// ===== FALLBACK NATURE IMAGES (Unsplash, free to use) =====
+// ===== FALLBACK NATURE IMAGES =====
 const FALLBACK_IMAGES = [
   { url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1920', credit: 'Bailey Zindel' },
   { url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920', credit: 'Vackground' },
-  { url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920', credit: 'LukÃ¡Å¡ VaÅˆÃ¡tko' },
+  { url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920', credit: 'Lukáš Vaňátko' },
   { url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920', credit: 'David Marcu' },
   { url: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1920', credit: 'Adam Kool' },
   { url: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=1920', credit: 'Luca Micheli' },
@@ -563,7 +604,6 @@ const FALLBACK_IMAGES = [
   { url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920', credit: 'Eberhard Grossgasteiger' },
 ];
 
-// Pixabay nature images (fallback when Unsplash hits rate limit)
 const PIXABAY_IMAGES = [
   'https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885_1280.jpg',
   'https://cdn.pixabay.com/photo/2015/12/01/20/28/road-1072821_1280.jpg',
@@ -584,7 +624,6 @@ const PIXABAY_IMAGES = [
 
 // ===== FETCH UNSPLASH NATURE IMAGE =====
 async function fetchUnsplashImage() {
-  // Try Unsplash API first
   const topics = ['nature', 'landscape', 'mountains', 'forest', 'ocean', 'sunset', 'sky', 'water'];
   const query = topics[Math.floor(Math.random() * topics.length)];
   const apiUrl = `https://api.unsplash.com/photos/random?query=${query}&orientation=landscape&client_id=${UNSPLASH_KEY}`;
@@ -593,27 +632,19 @@ async function fetchUnsplashImage() {
     const resp = await fetch(apiUrl);
     if (resp.ok) {
       const text = await resp.text();
-      // Check for rate limit plain-text response
-      if (text.startsWith('Rate Limit')) {
-        throw new Error('rate_limit');
-      }
+      if (text.startsWith('Rate Limit')) throw new Error('rate_limit');
       const data = JSON.parse(text);
       if (data.errors) throw new Error(data.errors.join(', '));
-      return {
-        url: data.urls?.regular || data.urls?.full,
-        credit: data.user?.name,
-      };
+      return { url: data.urls?.regular || data.urls?.full, credit: data.user?.name };
     }
     throw new Error(`HTTP ${resp.status}`);
   } catch (err) {
     console.warn('Unsplash API fallback used:', err.message);
-    // Try Pixabay first, then fallback to local list
     return await fetchPixabayFallback();
   }
 }
 
 async function fetchPixabayFallback() {
-  // Try Pixabay API (free, generous rate limit)
   try {
     const resp = await fetch('https://pixabay.com/api/?key=25524219-f24f4c3d6e9d7f8a0b1c3d4e5&q=nature+landscape&image_type=photo&orientation=horizontal&per_page=20&safesearch=true');
     if (resp.ok) {
@@ -624,18 +655,14 @@ async function fetchPixabayFallback() {
       }
     }
   } catch(e) { console.warn('Pixabay API:', e.message); }
-  // Final fallback: mix of Unsplash + Pixabay hardcoded
   const all = [...FALLBACK_IMAGES.map(i => i.url), ...PIXABAY_IMAGES];
   const url = all[Math.floor(Math.random() * all.length)];
   return { url, credit: 'Nature' };
 }
 
-// Helper: strip Unsplash URL to clean CDN format (ensures CORS for canvas export)
 function cleanUnsplashUrl(url) {
-  // Unsplash
   const uMatch = url.match(/photo-([a-zA-Z0-9_-]+)/);
   if (uMatch) return `https://images.unsplash.com/photo-${uMatch[1]}?w=1920`;
-  // Pixabay â€” return as-is (already full CDN URL)
   return url;
 }
 
@@ -681,29 +708,25 @@ function initSurahSelect() {
   select.value = '1';
 }
 
-// ===== RENDER TO CANVAS (supports multiple verses) =====
+// ===== RENDER TO CANVAS =====
 async function renderCanvas(verses, surahName, surahNum, imageUrl) {
-  // verses = [{arabic, english, urdu, verseNum}, ...]
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
-  // Use smaller canvas on mobile (1080px max) for reliable recording
   const isMobile = window.innerWidth < 768;
   const W = isMobile ? 1080 : 1920;
-  const mobileScale = W / 1920; // scale all pixel values for mobile
+  const mobileScale = W / 1920;
   const MARGIN_X = W * 0.13;
   const TEXT_W = W - MARGIN_X * 2;
 
   const bgImg = await loadImage(imageUrl);
 
-  // Measure all content first
   let sections = [];
   const GAP_BETWEEN_VERSES = 15;
 
   for (let vi = 0; vi < verses.length; vi++) {
     const v = verses[vi];
-    const verseLabel = verses.length > 1 ? `â€” ${v.verseNum} â€”` : null;
+    const verseLabel = verses.length > 1 ? `— ${v.verseNum} —` : null;
 
-    // Arabic
     const arabicFontSize = fitText(ctx, v.arabic, TEXT_W * 0.92, Math.round(54 * mobileScale), Math.round(96 * mobileScale),
       `400 96px "Al Qalam Quran", "Amiri", "Noto Naskh Arabic", serif`);
     ctx.font = `400 ${arabicFontSize}px "Al Qalam Quran", "Amiri", "Noto Naskh Arabic", serif`;
@@ -711,7 +734,6 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
     const arabicLineH = arabicFontSize * 1.85;
     const arabicH = arabicLines.length * arabicLineH;
 
-    // English
     const engFontSize = fitText(ctx, v.english, TEXT_W, Math.round(32 * mobileScale), Math.round(48 * mobileScale),
       `400 48px "Playfair Display", "Cormorant Garamond", "Georgia", serif`);
     ctx.font = `400 ${engFontSize}px "Playfair Display", "Cormorant Garamond", "Georgia", serif`;
@@ -719,7 +741,6 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
     const engLineH = engFontSize * 1.7;
     const engH = engLines.length * engLineH;
 
-    // Urdu
     const urduFontSize = fitText(ctx, v.urdu, TEXT_W, Math.round(32 * mobileScale), Math.round(45 * mobileScale),
       `400 45px "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif`);
     ctx.font = `400 ${urduFontSize}px "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif`;
@@ -735,7 +756,6 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
     });
   }
 
-  // Calculate total height (scaled for mobile)
   const headerH = Math.round(88 * mobileScale);
   const TOP_PAD = Math.round(224 * mobileScale);
   const BOTTOM_PAD = Math.round(144 * mobileScale);
@@ -747,18 +767,14 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
   let contentH = headerH + GAP_HEADER;
   for (let i = 0; i < sections.length; i++) {
     const s = sections[i];
-    if (i > 0) contentH += Math.round(64 * mobileScale); // GAP_BETWEEN_VERSES
-    // Verse label
+    if (i > 0) contentH += Math.round(64 * mobileScale);
     if (s.verseLabel) contentH += Math.round(64 * mobileScale);
-    // Arabic + ornament gap + English + gap + Urdu
     contentH += s.arabicH + GAP_AFTER_ARABIC + Math.round(28 * mobileScale) + GAP_AFTER_ARABIC + s.engH + GAP_AFTER_ENG + s.urduH;
   }
 
-  // Add translators credit once
   const translatorH = Math.round(58 * mobileScale);
   contentH += Math.round(26 * mobileScale) + translatorH + Math.round(13 * mobileScale) + translatorH;
 
-  // Reciter credit (only if checkbox checked)
   const showRec = document.getElementById('showReciter').checked;
   let reciterCreditH = 0;
   if (showRec) {
@@ -806,8 +822,8 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
 
   // ---- HEADER ----
   const rangeLabel = verses.length === 1
-    ? `${surahName}  Â·  ${surahNum}:${verses[0].verseNum}`
-    : `${surahName}  Â·  ${surahNum}:${verses[0].verseNum}â€“${verses[verses.length-1].verseNum}`;
+    ? `${surahName}  ·  ${surahNum}:${verses[0].verseNum}`
+    : `${surahName}  ·  ${surahNum}:${verses[0].verseNum}–${verses[verses.length-1].verseNum}`;
   ctx.direction = 'ltr';
   ctx.font = `400 ${Math.round(32 * mobileScale)}px "Playfair Display", "Cormorant Garamond", "Georgia", serif`;
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
@@ -822,7 +838,6 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
     const s = sections[i];
     if (i > 0) curY += GAP_BETWEEN_VERSES;
 
-    // Verse number marker (only for multi-verse)
     if (s.verseLabel) {
       ctx.direction = 'ltr';
       ctx.font = `400 ${Math.round(29 * mobileScale)}px "Cormorant Garamond", serif`;
@@ -845,12 +860,11 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
       curY += s.arabicLineH;
     }
 
-    // Ornament
     curY += GAP_AFTER_ARABIC;
     drawOrnament(ctx, W / 2, curY, W * 0.12);
     curY += GAP_AFTER_ARABIC;
 
-    // English (no stroke â€” elegant, clean)
+    // English
     ctx.direction = 'ltr';
     ctx.font = `400 ${s.engFontSize}px "Playfair Display", "Cormorant Garamond", "Georgia", serif`;
     for (const line of s.engLines) {
@@ -878,7 +892,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
     curY += GAP_AFTER_URDU;
   }
 
-  // ---- TRANSLATOR CREDITS (once at bottom) ----
+  // ---- TRANSLATOR CREDITS ----
   curY += Math.round(26 * mobileScale);
   ctx.direction = 'ltr';
   ctx.font = `400 ${Math.round(24 * mobileScale)}px "Cormorant Garamond", serif`;
@@ -886,7 +900,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
   ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
   ctx.fillText('English: Dr. Mustafa Khattab, The Clear Quran', W / 2, curY);
   curY += translatorH;
-  ctx.fillText('Urdu: Tafheem e Qur\'an â€” Syed Abu Ali Maududi', W / 2, curY);
+  ctx.fillText('Urdu: Tafheem e Qur\'an — Syed Abu Ali Maududi', W / 2, curY);
   ctx.shadowBlur = 0;
 
   // ---- RECITER (only if checkbox checked) ----
@@ -897,7 +911,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
     ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
     const reciterEl = document.getElementById('reciter');
     const recName = reciterEl ? reciterEl.options[reciterEl.selectedIndex]?.text : 'Mishary Alafasy';
-    ctx.fillText('ðŸŽ™ ' + (recName || 'Mishary Alafasy'), W / 2, curY);
+    ctx.fillText('🎙 ' + (recName || 'Mishary Alafasy'), W / 2, curY);
     ctx.shadowBlur = 0;
   }
 
@@ -914,27 +928,21 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
 }
 
 // ===== TEXT HELPERS =====
-
 function fitText(ctx, text, maxWidth, minSize, maxSize, fontBase) {
   for (let size = maxSize; size >= minSize; size -= 2) {
     ctx.font = fontBase.replace(/\d+px/, `${size}px`);
-    const metrics = ctx.measureText(text);
-    if (metrics.width <= maxWidth) return size;
+    if (ctx.measureText(text).width <= maxWidth) return size;
   }
   return minSize;
 }
 
-function wrapText(ctx, text, maxWidth, fontSize) {
-  // Simple word wrap
+function wrapText(ctx, text, maxWidth) {
   const words = text.split(' ');
   const lines = [];
   let currentLine = '';
-
-  ctx.font = ctx.font; // keep current font
   for (const word of words) {
     const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const metrics = ctx.measureText(testLine);
-    if (metrics.width > maxWidth && currentLine) {
+    if (ctx.measureText(testLine).width > maxWidth && currentLine) {
       lines.push(currentLine);
       currentLine = word;
     } else {
@@ -947,37 +955,28 @@ function wrapText(ctx, text, maxWidth, fontSize) {
 
 function drawOrnament(ctx, x, y, width) {
   const half = width / 2;
-
-  // Center diamond
   ctx.save();
   ctx.fillStyle = 'rgba(212,168,83,0.6)';
   ctx.shadowColor = 'rgba(212,168,83,0.4)';
   ctx.shadowBlur = 12;
-
-  // Left line
   ctx.strokeStyle = 'rgba(212,168,83,0.3)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(x - half, y);
   ctx.lineTo(x - 12, y);
   ctx.stroke();
-
-  // Right line
   ctx.beginPath();
   ctx.moveTo(x + 12, y);
   ctx.lineTo(x + half, y);
   ctx.stroke();
-
-  // Center dot
   ctx.fillStyle = 'rgba(212,168,83,0.7)';
   ctx.beginPath();
   ctx.arc(x, y, 4, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.restore();
 }
 
-// ===== IMAGE LOADER (blob-based â€” keeps canvas clean on file://) =====
+// ===== IMAGE LOADER =====
 function loadImage(url) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -994,10 +993,10 @@ function loadImage(url) {
   });
 }
 
-// ===== PARSE VERSE INPUT (single or range) =====
+// ===== PARSE VERSE INPUT =====
 function parseVerseInput(input, maxVerse) {
   const trimmed = input.trim();
-  const rangeMatch = trimmed.match(/^(\d+)\s*[-â€“]\s*(\d+)$/);
+  const rangeMatch = trimmed.match(/^(\d+)\s*[-–]\s*(\d+)$/);
   if (rangeMatch) {
     const start = parseInt(rangeMatch[1]);
     const end = parseInt(rangeMatch[2]);
@@ -1017,7 +1016,7 @@ async function generate() {
   const verseInput = document.getElementById('verse').value;
 
   if (isNaN(surah) || surah < 1 || surah > 114) {
-    showError('Please enter a valid Surah number (1â€“114).');
+    showError('Please enter a valid Surah number (1–114).');
     return;
   }
 
@@ -1041,9 +1040,8 @@ async function generate() {
 
   try {
     const surahName = getSurahName(surah);
-    loaderText.textContent = `Fetching ${verseNums.length} verse(s) from Quran.comâ€¦`;
+    loaderText.textContent = `Fetching ${verseNums.length} verse(s) from Quran.com…`;
 
-    // Fetch all verses in parallel
     const versePromises = verseNums.map(vn =>
       Promise.all([
         fetchFromQuranAPI(surah, vn),
@@ -1061,19 +1059,21 @@ async function generate() {
       fetchUnsplashImage()
     ]);
 
-    loaderText.textContent = 'Rendering beautiful imageâ€¦';
+    loaderText.textContent = 'Rendering beautiful image…';
     const reciterEl = document.getElementById('reciter');
     const reciterName = reciterEl.options[reciterEl.selectedIndex]?.text || 'Mishary Alafasy';
     await renderCanvas(verses, surahName, surah, imageData.url);
 
     document.getElementById('result').classList.add('visible');
 
-    // Store verse data for video
+    // Store verse data for video AND for cached re-render (reciter toggle)
     window._lastVerses = verses;
     window._lastSurah = surah;
     window._lastSurahName = surahName;
     window._lastImageUrl = imageData.url;
     window._lastReciterName = reciterName;
+    // Cache for re-rendering without refetching
+    window._lastRenderData = { verses, surahName, surahNum: surah, imageUrl: imageData.url };
   } catch (err) {
     console.error(err);
     showError(`Error: ${err.message}`);
@@ -1082,6 +1082,23 @@ async function generate() {
     document.getElementById('btnGenerate').disabled = false;
   }
 }
+
+// Re-render from cache (used by reciter checkbox toggle — no API refetch)
+async function rerenderImage() {
+  const data = window._lastRenderData;
+  if (!data) return;
+  try {
+    await renderCanvas(data.verses, data.surahName, data.surahNum, data.imageUrl);
+  } catch (err) {
+    console.error('Re-render failed:', err);
+  }
+}
+
+// Hook checkbox to re-render from cache
+document.addEventListener('DOMContentLoaded', () => {
+  const cb = document.getElementById('showReciter');
+  if (cb) cb.addEventListener('change', rerenderImage);
+});
 
 function showError(msg) {
   const el = document.getElementById('error');
@@ -1094,21 +1111,18 @@ function downloadImage() {
   const canvas = document.getElementById('canvas');
   const s = document.getElementById('surah').value;
   const v = document.getElementById('verse').value;
-
-  // Try toBlob first (handles cross-origin better in some browsers)
   try {
     canvas.toBlob((blob) => {
       if (!blob) {
         try {
-          const dataUrl = canvas.toDataURL('image/png');
-          triggerDownload(dataUrl, `quran-${s}-${v}.png`);
+          triggerDownload(canvas.toDataURL('image/png'), `quran-${s}-${v}.png`);
         } catch (e2) {
-          showError('Download blocked. Right-click the image â†’ Save As.');
+          showError('Download blocked. Right-click the image → Save As.');
         }
         return;
       }
       const url = URL.createObjectURL(blob);
-      triggerDownload(url, `quran-${s}-${v.replace(/[â€“-]/g,'-')}.png`);
+      triggerDownload(url, `quran-${s}-${v.replace(/[–-]/g,'-')}.png`);
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     }, 'image/png');
   } catch (err) {
@@ -1124,10 +1138,7 @@ function triggerDownload(url, filename) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  // If download didn't start after 1s, open in new tab
-  setTimeout(() => {
-    if (url.startsWith('blob:')) URL.revokeObjectURL(url);
-  }, 2000);
+  setTimeout(() => { if (url.startsWith('blob:')) URL.revokeObjectURL(url); }, 2000);
 }
 
 // ===== AUDIO RECITATION URL =====
@@ -1137,7 +1148,7 @@ function getVerseAudioUrl(surah, verse, reciter) {
   return `https://everyayah.com/data/${reciter}/${ss}${vv}.mp3`;
 }
 
-// ===== CREATE VIDEO - WhatsApp-friendly MP4/AAC, long-range safe =====
+// ===== CREATE VIDEO — silent recording (audio → stream only, NOT speakers) =====
 let mediaRecorder = null;
 let recordedChunks = [];
 const VIDEO_CONVERTER_API = 'https://quran-verse-image-video-generator-production.up.railway.app/';
@@ -1157,43 +1168,23 @@ function getWhatsAppRecorderOptions() {
     'video/webm'
   ];
 
-  // Chrome/Edge may report MP4 support but produce empty blobs for canvas + WebAudio.
-  // Record WebM there first, then convert to WhatsApp-ready MP4/AAC.
   if (!isSafari) {
     for (const mimeType of webmCandidates) {
       if (MediaRecorder.isTypeSupported(mimeType)) {
-        return {
-          mimeType,
-          ext: 'webm',
-          needsTranscode: true,
-          videoBitsPerSecond: 6000000,
-          audioBitsPerSecond: 128000
-        };
+        return { mimeType, ext: 'webm', needsTranscode: true, videoBitsPerSecond: 6000000, audioBitsPerSecond: 128000 };
       }
     }
   }
 
   for (const mimeType of mp4Candidates) {
     if (MediaRecorder.isTypeSupported(mimeType)) {
-      return {
-        mimeType,
-        ext: 'mp4',
-        needsTranscode: false,
-        videoBitsPerSecond: 6000000,
-        audioBitsPerSecond: 128000
-      };
+      return { mimeType, ext: 'mp4', needsTranscode: false, videoBitsPerSecond: 6000000, audioBitsPerSecond: 128000 };
     }
   }
 
   for (const mimeType of webmCandidates) {
     if (MediaRecorder.isTypeSupported(mimeType)) {
-      return {
-        mimeType,
-        ext: 'webm',
-        needsTranscode: true,
-        videoBitsPerSecond: 6000000,
-        audioBitsPerSecond: 128000
-      };
+      return { mimeType, ext: 'webm', needsTranscode: true, videoBitsPerSecond: 6000000, audioBitsPerSecond: 128000 };
     }
   }
   throw new Error('Video recording is not supported in this browser.');
@@ -1223,10 +1214,7 @@ async function convertToWhatsAppMp4(blob, statusEl) {
     if (statusEl) statusEl.textContent = 'Receiving MP4...';
     if (!response.ok) {
       let message = `Backend conversion failed (${response.status}).`;
-      try {
-        const details = await response.json();
-        if (details?.error) message = details.error;
-      } catch(e) {}
+      try { const details = await response.json(); if (details?.error) message = details.error; } catch(e) {}
       throw new Error(message);
     }
 
@@ -1240,12 +1228,14 @@ async function convertToWhatsAppMp4(blob, statusEl) {
     clearTimeout(timeout);
   }
 }
+
 async function fetchDecodedVerse(audioCtx, surah, verseNum, reciter) {
   const resp = await fetch(getVerseAudioUrl(surah, verseNum, reciter));
   if (!resp.ok) throw new Error(`Audio not found for verse ${verseNum}`);
   return audioCtx.decodeAudioData(await resp.arrayBuffer());
 }
 
+// Start audio buffer → ONLY to recording stream (NOT speakers), avoids double-play
 function startAudioBuffer(audioCtx, destNode, buffer, options = {}) {
   const fadeSeconds = Math.min((options.fadeMs || 50) / 1000, Math.max(0, buffer.duration / 2 - 0.005));
   const startAt = Math.max(options.startAt || audioCtx.currentTime, audioCtx.currentTime);
@@ -1256,8 +1246,9 @@ function startAudioBuffer(audioCtx, destNode, buffer, options = {}) {
 
   src.buffer = buffer;
   src.connect(gain);
+  // ONLY connect to recording stream destination — NO speaker output during recording
   gain.connect(destNode);
-  gain.connect(audioCtx.destination);
+
   gain.gain.cancelScheduledValues(startAt);
   gain.gain.setValueAtTime(shouldFadeIn ? 0 : 1, startAt);
   if (shouldFadeIn) gain.gain.linearRampToValueAtTime(1, startAt + fadeSeconds);
@@ -1293,12 +1284,14 @@ async function createVideo() {
 
   try {
     const recorderOptions = getWhatsAppRecorderOptions();
-    btnVideo.textContent = 'â³ Loading first verseâ€¦';
+    btnVideo.textContent = '⏳ Loading first verse…';
     const audioCtx = new AudioContext();
     await audioCtx.resume();
+
+    // Prefetch first verse audio
     let nextBufferPromise = fetchDecodedVerse(audioCtx, surah, verses[0].verseNum, reciter);
 
-    // ---- Setup recording canvas (appended to DOM to ensure captureStream works) ----
+    // ---- Setup recording canvas ----
     const mainCanvas = document.getElementById('canvas');
     const W = mainCanvas.width;
     const H = mainCanvas.height;
@@ -1312,14 +1305,14 @@ async function createVideo() {
     const rctx = rec.getContext('2d');
     rctx.drawImage(mainCanvas, 0, 0);
 
-    // Draw reciter name on video canvas (image stays clean)
-    const reciterName = window._lastReciterName || (() => { const el = document.getElementById('reciter'); return el.options[el.selectedIndex]?.text; })() || 'Mishary Alafasy';
+    // Draw reciter name on video canvas if enabled
+    const reciterName = window._lastReciterName || 'Mishary Alafasy';
     if (document.getElementById('showReciter').checked) {
       rctx.font = 'italic 28px "Cormorant Garamond", serif';
       rctx.fillStyle = 'rgba(255,255,255,0.55)';
       rctx.shadowColor = 'rgba(0,0,0,0.6)'; rctx.shadowBlur = 4;
       rctx.textAlign = 'center';
-      rctx.fillText('ðŸŽ™ ' + reciterName, W / 2, H - 60);
+      rctx.fillText('🎙 ' + reciterName, W / 2, H - 60);
       rctx.shadowBlur = 0;
       rctx.textAlign = 'start';
     }
@@ -1331,18 +1324,18 @@ async function createVideo() {
       console.log('[Video] captureStream OK');
     } catch (e) {
       rec.remove();
-      btnVideo.disabled = false; btnVideo.textContent = 'ðŸŽ¬ Create Video';
+      btnVideo.disabled = false; btnVideo.textContent = '🎬 Create Video';
       showError('Video capture failed. Use Chrome or Edge.');
       return;
     }
 
-    // ---- Stream decoded verses one by one to avoid huge memory use on long ranges ----
+    // ---- Audio → stream only (no speakers) ----
     const destNode = audioCtx.createMediaStreamDestination();
     let combinedStream = stream;
     const at = destNode.stream.getAudioTracks()[0];
     if (at) {
       combinedStream = new MediaStream([stream.getVideoTracks()[0], at]);
-      console.log('[Video] Audio track merged');
+      console.log('[Video] Audio track merged (silent recording)');
     }
 
     mediaRecorder = new MediaRecorder(combinedStream, {
@@ -1350,14 +1343,16 @@ async function createVideo() {
       videoBitsPerSecond: recorderOptions.videoBitsPerSecond,
       audioBitsPerSecond: recorderOptions.audioBitsPerSecond
     });
-    console.log('[Video] Recorder:', recorderOptions.mimeType, recorderOptions.needsTranscode ? 'â†’ converts to MP4/AAC' : 'â†’ MP4/AAC');
+    console.log('[Video] Recorder:', recorderOptions.mimeType, recorderOptions.needsTranscode ? '→ converts to MP4/AAC' : '→ MP4/AAC');
 
     const recBar = document.getElementById('recordingBar');
     const recTimer = document.getElementById('recTimer');
     let recSeconds = 0;
     let timerInterval = null;
 
-    mediaRecorder.ondataavailable = (e) => { if (e.data?.size>0) { recordedChunks.push(e.data); console.log('[Video] Chunk:', (e.data.size/1024).toFixed(0), 'KB'); } };
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data?.size > 0) { recordedChunks.push(e.data); console.log('[Video] Chunk:', (e.data.size/1024).toFixed(0), 'KB'); }
+    };
 
     let cleanedUp = false;
     const cleanup = () => {
@@ -1367,7 +1362,8 @@ async function createVideo() {
         window._activeAudioSources.forEach(src => { try { src.stop(); } catch(e) {} });
         window._activeAudioSources = [];
       }
-      clearInterval(window._drawTimer); rec.remove();
+      clearInterval(window._drawTimer);
+      rec.remove();
       audioCtx.close();
     };
 
@@ -1377,18 +1373,20 @@ async function createVideo() {
       window.removeEventListener('beforeunload', window._stopRecording);
       cleanup();
       console.log('[Video] Done. Chunks:', recordedChunks.length);
-      if (!recordedChunks.length) { btnVideo.disabled=false; btnVideo.textContent='ðŸŽ¬ Create Video'; showError('No video data. Try a different browser.'); return; }
+      if (!recordedChunks.length) {
+        btnVideo.disabled = false; btnVideo.textContent = '🎬 Create Video';
+        showError('No video data. Try a different browser.'); return;
+      }
       try {
         btnVideo.textContent = recorderOptions.needsTranscode ? 'Converting to MP4...' : 'Saving...';
-        const rawBlob = new Blob(recordedChunks, { type:recorderOptions.mimeType });
+        const rawBlob = new Blob(recordedChunks, { type: recorderOptions.mimeType });
         console.log('[Video] Raw output:', (rawBlob.size/1024).toFixed(0), 'KB');
         const statusEl = document.getElementById('loaderText');
         document.getElementById('vidCompat').classList.toggle('visible', recorderOptions.needsTranscode);
         const blob = await convertToWhatsAppMp4(rawBlob, statusEl);
         console.log('[Video] WhatsApp MP4 output:', (blob.size/1024).toFixed(0), 'KB');
-        const vLabel = verses.length===1 ? String(verses[0].verseNum) : `${verses[0].verseNum}-${verses[verses.length-1].verseNum}`;
+        const vLabel = verses.length === 1 ? String(verses[0].verseNum) : `${verses[0].verseNum}-${verses[verses.length-1].verseNum}`;
         const url = URL.createObjectURL(blob);
-        // Save for preview
         window._lastVideoURL = url;
         window._lastVideoName = `quran-${surah}-${vLabel}.mp4`;
         window._lastVideoMime = 'video/mp4';
@@ -1400,7 +1398,7 @@ async function createVideo() {
         showError(`Video conversion failed: ${err.message}`);
       } finally {
         document.getElementById('vidCompat').classList.remove('visible');
-        btnVideo.disabled=false; btnVideo.textContent='ðŸŽ¬ Create Video';
+        btnVideo.disabled = false; btnVideo.textContent = '🎬 Create Video';
       }
     };
 
@@ -1409,15 +1407,14 @@ async function createVideo() {
       recBar.classList.remove('visible');
       window.removeEventListener('beforeunload', window._stopRecording);
       cleanup();
-      btnVideo.disabled=false; btnVideo.textContent='ðŸŽ¬ Create Video';
+      btnVideo.disabled = false; btnVideo.textContent = '🎬 Create Video';
     };
 
-    // ---- Start: stop when the last verse finishes, with no fixed time limit ----
+    // ---- Start recording — auto-stops when last verse finishes ----
     mediaRecorder.start(250);
-    btnVideo.textContent = 'ðŸ”´ Recordingâ€¦';
+    btnVideo.textContent = '🔴 Recording…';
     console.log('[Video] Started; recording until all verses finish');
 
-    // Show recording bar with live timer
     recBar.classList.add('visible');
     timerInterval = setInterval(() => {
       recSeconds++;
@@ -1426,36 +1423,33 @@ async function createVideo() {
       recTimer.textContent = m + ':' + String(s).padStart(2, '0');
     }, 1000);
 
-    // Stop button + beforeunload
     window._stopRecording = () => {
       if (mediaRecorder.state === 'recording') {
         clearInterval(timerInterval); clearInterval(window._drawTimer);
         mediaRecorder.stop();
         recBar.classList.remove('visible');
-        btnVideo.textContent = 'ðŸ’¾ Savingâ€¦';
+        btnVideo.textContent = '💾 Saving…';
       }
     };
     window.addEventListener('beforeunload', window._stopRecording);
 
-    // Keep feeding frames + animated sparkles
+    // Keep feeding frames with animated sparkles
     const sparkles = Array.from({length: 40}, () => ({
       x: Math.random() * W, y: Math.random() * H,
       s: Math.random() * 5 + 3, a: Math.random() * 0.25 + 0.1,
       da: (Math.random() - 0.5) * 0.05, dy: -(0.2 + Math.random() * 0.4),
-      hue: Math.random() < 0.3 ? 45 : 0 // some gold, mostly white
+      hue: Math.random() < 0.3 ? 45 : 0
     }));
     window._drawTimer = setInterval(() => {
       if (mediaRecorder.state !== 'recording') { clearInterval(window._drawTimer); return; }
       rctx.clearRect(0, 0, W, H);
       rctx.drawImage(mainCanvas, 0, 0);
-      // âœ¨ Sparkles
       for (const sp of sparkles) {
         sp.a += sp.da;
         if (sp.a <= 0.15) sp.da = Math.abs(sp.da);
         if (sp.a >= 1) sp.da = -Math.abs(sp.da);
         sp.y += sp.dy;
         if (sp.y < -20 || sp.y > H + 20) { sp.y = H + 20; sp.x = Math.random() * W; sp.a = 0.2; }
-        // 4-point star
         rctx.save();
         rctx.translate(sp.x, sp.y);
         const color = sp.hue ? `rgba(255,235,140,${sp.a.toFixed(2)})` : `rgba(255,255,255,${sp.a.toFixed(2)})`;
@@ -1469,23 +1463,26 @@ async function createVideo() {
       }
     }, 100);
 
+    // ---- Audio streaming: play verses sequentially into recording stream ----
     (async () => {
       try {
         const CROSSFADE_MS = 50;
         const activeSources = [];
         let previousPlayback = null;
         for (let i = 0; i < verses.length; i++) {
-          btnVideo.textContent = `ðŸ”´ Recording ${i + 1}/${verses.length}â€¦`;
+          btnVideo.textContent = `🔴 Recording ${i + 1}/${verses.length}…`;
           const currentBuffer = await nextBufferPromise;
+          // Prefetch next verse while current one plays
           if (i + 1 < verses.length) {
-            nextBufferPromise = fetchDecodedVerse(audioCtx, surah, verses[i + 1].verseNum, reciter);
+            nextBufferPromise = fetchDecodedVerse(audioCtx, surah, verses[i + 1].verseNum, reciter).catch(err => {
+              console.warn(`[Video] Verse ${verses[i+1].verseNum} audio skipped:`, err.message);
+              return null; // Skip failed verse, continue with others
+            });
           }
           const startAt = previousPlayback ? previousPlayback.endAt - (CROSSFADE_MS / 1000) : audioCtx.currentTime;
           const playback = startAudioBuffer(audioCtx, destNode, currentBuffer, {
-            startAt,
-            fadeMs: CROSSFADE_MS,
-            fadeIn: i > 0,
-            fadeOut: i < verses.length - 1
+            startAt, fadeMs: CROSSFADE_MS,
+            fadeIn: i > 0, fadeOut: i < verses.length - 1
           });
           activeSources.push(playback.src);
           window._activeAudioSources = activeSources;
@@ -1497,7 +1494,7 @@ async function createVideo() {
         if (mediaRecorder && mediaRecorder.state === 'recording') {
           mediaRecorder.requestData();
           mediaRecorder.stop();
-          btnVideo.textContent = 'ðŸ’¾ Savingâ€¦';
+          btnVideo.textContent = '💾 Saving…';
         }
       } catch (err) {
         console.error('[Video] Audio sequence failed:', err);
@@ -1508,7 +1505,7 @@ async function createVideo() {
 
   } catch (err) {
     console.error('[Video] Fatal:', err);
-    btnVideo.disabled = false; btnVideo.textContent = 'ðŸŽ¬ Create Video';
+    btnVideo.disabled = false; btnVideo.textContent = '🎬 Create Video';
     showError(`Video: ${err.message}`);
   }
 }
@@ -1544,7 +1541,7 @@ function updateVerseInfo() {
   const surah = parseInt(document.getElementById('surah').value) || 1;
   const count = VERSE_COUNTS[Math.min(114, Math.max(1, surah))];
   const info = document.getElementById('verseInfo');
-  if (info) info.innerHTML = `ðŸ“– <strong>${count}</strong> verses`;
+  if (info) info.innerHTML = `📖 <strong>${count}</strong> verses`;
 }
 
 // ===== ENTER KEY =====
@@ -1552,7 +1549,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') generate();
 });
 
-// Load English Quran in background
+// ===== INIT =====
 loadEnglishQuran().catch(console.warn);
 initSurahSelect();
 updateVerseInfo();
