@@ -880,7 +880,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
 
   // ---- RECITER (only if checkbox checked) ----
   if (showRec) {
-    curY += Math.round(16 * mobileScale) + reciterCreditH;
+    curY += Math.round(40 * mobileScale) + reciterCreditH;
     ctx.font = `italic ${Math.round(26 * mobileScale)}px "Cormorant Garamond", serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
     ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
@@ -1352,9 +1352,9 @@ async function createVideo() {
     window.addEventListener('beforeunload', window._stopRecording);
 
     // Keep feeding frames + animated sparkles
-    const sparkles = Array.from({length: 35}, () => ({
+    const sparkles = Array.from({length: 40}, () => ({
       x: Math.random() * W, y: Math.random() * H,
-      s: Math.random() * 4 + 2, a: Math.random() * 0.3 + 0.05,
+      s: Math.random() * 5 + 3, a: Math.random() * 0.25 + 0.1,
       da: (Math.random() - 0.5) * 0.05, dy: -(0.2 + Math.random() * 0.4),
       hue: Math.random() < 0.3 ? 45 : 0 // some gold, mostly white
     }));
