@@ -423,7 +423,7 @@
     <option value="Abdul_Basit_Mujawwad_128kbps">Abdul Basit (Mujawwad)</option>
   </select>
   <label class="reciter-check">
-    <input type="checkbox" id="showReciter"> 🎙 Show reciter on image</label>
+    <input type="checkbox" id="showReciter" onchange="generate()"> 🎙 Show reciter on image</label>
   </label>
 </div>
 
@@ -740,6 +740,14 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
   const translatorH = Math.round(58 * mobileScale);
   contentH += Math.round(26 * mobileScale) + translatorH + Math.round(13 * mobileScale) + translatorH;
 
+  // Reciter credit (only if checkbox checked)
+  const showRec = document.getElementById('showReciter').checked;
+  let reciterCreditH = 0;
+  if (showRec) {
+    reciterCreditH = Math.round(40 * mobileScale);
+    contentH += Math.round(16 * mobileScale) + reciterCreditH;
+  }
+
   const footerH = Math.round(128 * mobileScale);
   const H = TOP_PAD + contentH + Math.round(64 * mobileScale) + footerH + BOTTOM_PAD;
 
@@ -865,6 +873,18 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
   curY += translatorH;
   ctx.fillText('Urdu: Tafheem e Qur\'an — Syed Abu Ali Maududi', W / 2, curY);
   ctx.shadowBlur = 0;
+
+  // ---- RECITER (only if checkbox checked) ----
+  if (showRec) {
+    curY += Math.round(16 * mobileScale) + reciterCreditH;
+    ctx.font = `italic ${Math.round(26 * mobileScale)}px "Cormorant Garamond", serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
+    const reciterEl = document.getElementById('reciter');
+    const recName = reciterEl ? reciterEl.options[reciterEl.selectedIndex]?.text : 'Mishary Alafasy';
+    ctx.fillText('🎙 ' + (recName || 'Mishary Alafasy'), W / 2, curY);
+    ctx.shadowBlur = 0;
+  }
 
   // ---- BOTTOM GOLD LINE ----
   const footerY = H - footerH;
