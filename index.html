@@ -299,6 +299,22 @@
   }
   .btn-stop:hover { background: #b91c1c; }
 
+  .vid-compat {
+    display: none;
+    margin-top: 12px;
+    padding: 10px 16px;
+    background: rgba(255,193,7,0.1);
+    border: 1px solid rgba(255,193,7,0.25);
+    border-radius: 10px;
+    color: #e8c84a;
+    font-size: 0.82rem;
+    text-align: center;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .vid-compat.visible { display: block; }
+
   /* Quick Surah Picker */
   .quick-pick {
     display: flex;
@@ -330,6 +346,31 @@
     color: var(--muted);
     font-size: 0.8rem;
     text-align: center;
+  }
+
+  /* ---- Mobile ---- */
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    .container { padding: 20px 14px; max-width: 100%; }
+    h1 { font-size: 1.3rem; }
+    .subtitle { font-size: 0.85rem; }
+    .controls { flex-direction: column; gap: 10px; }
+    .input-group { flex: none; }
+    .input-group label { font-size: 0.7rem; }
+    .input-group input { font-size: 0.95rem; padding: 12px 14px; }
+    .reciter-wrapper { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .reciter-select { width: 100%; font-size: 0.9rem; padding: 12px; }
+    .verse-info { font-size: 0.8rem; padding: 10px 14px; }
+    .quick-pick { gap: 6px; }
+    .quick-pick button { font-size: 0.75rem; padding: 8px 12px; }
+    .btn-generate { width: 100%; font-size: 0.95rem; padding: 14px; }
+    .canvas-wrapper canvas { width: 100% !important; height: auto !important; }
+    .actions { flex-direction: column; gap: 8px; }
+    .actions .btn { width: 100%; justify-content: center; }
+    .video-preview video { max-width: 100% !important; }
+    .recording-bar { flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
+    .rec-timer { font-size: 1.1rem; }
+    footer { padding: 20px; font-size: 0.7rem; }
   }
 </style>
 </head>
@@ -403,6 +444,9 @@
   </div>
   <div class="video-preview" id="videoPreview" style="display:none">
     <video id="previewVideo" controls style="width:100%;max-width:720px;border-radius:12px"></video>
+  </div>
+  <div class="vid-compat" id="vidCompat" style="display:none">
+    ⚠️ WebM format — not accepted by WhatsApp/Telegram. Use Edge/Safari for MP4, or convert with a free tool.
   </div>
   <div class="recording-bar" id="recordingBar" style="display:none">
     <span class="rec-dot"></span>
@@ -579,7 +623,7 @@ function getSurahName(num) {
 }
 
 // ===== RENDER TO CANVAS (supports multiple verses) =====
-async function renderCanvas(verses, surahName, surahNum, imageUrl) {
+async function renderCanvas(verses, surahName, surahNum, imageUrl, reciterName) {
   // verses = [{arabic, english, urdu, verseNum}, ...]
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
@@ -651,6 +695,9 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
   // Add translators credit once
   const translatorH = 58;
   contentH += 26 + translatorH + 13 + translatorH;
+  // Reciter credit
+  const reciterCreditH = 40;
+  contentH += 16 + reciterCreditH;
 
   const footerH = 128;
   const H = TOP_PAD + contentH + 64 + footerH + BOTTOM_PAD;
@@ -776,6 +823,14 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
   ctx.fillText('English: Dr. Mustafa Khattab, The Clear Quran', W / 2, curY);
   curY += translatorH;
   ctx.fillText('Urdu: Tafheem e Qur\'an — Syed Abu Ali Maududi', W / 2, curY);
+  ctx.shadowBlur = 0;
+
+  // ---- RECITER ----
+  curY += 16 + reciterCreditH;
+  ctx.font = 'italic 26px "Cormorant Garamond", serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
+  ctx.fillText('🎙 ' + (reciterName || 'Mishary Alafasy'), W / 2, curY);
   ctx.shadowBlur = 0;
 
   // ---- BOTTOM GOLD LINE ----
@@ -910,6 +965,7 @@ async function generate() {
   document.getElementById('btnDownloadVid').style.display = 'none';
   document.getElementById('videoPreview').classList.remove('visible');
   document.getElementById('recordingBar').classList.remove('visible');
+  document.getElementById('vidCompat').classList.remove('visible');
   const loader = document.getElementById('loader');
   const loaderText = document.getElementById('loaderText');
   loader.classList.add('visible');
@@ -938,7 +994,8 @@ async function generate() {
     ]);
 
     loaderText.textContent = 'Rendering beautiful image…';
-    await renderCanvas(verses, surahName, surah, imageData.url);
+    const reciterName = document.getElementById('reciter').selectedOptions[0]?.text || 'Mishary Alafasy';
+    await renderCanvas(verses, surahName, surah, imageData.url, reciterName);
 
     document.getElementById('result').classList.add('visible');
 
@@ -947,6 +1004,7 @@ async function generate() {
     window._lastSurah = surah;
     window._lastSurahName = surahName;
     window._lastImageUrl = imageData.url;
+    window._lastReciterName = reciterName;
   } catch (err) {
     console.error(err);
     showError(`Error: ${err.message}`);
@@ -1177,11 +1235,13 @@ async function createVideo() {
       console.log('[Video] Output:', (blob.size/1024).toFixed(0), 'KB');
       const vLabel = verses.length===1 ? String(verses[0].verseNum) : `${verses[0].verseNum}-${verses[verses.length-1].verseNum}`;
       const url = URL.createObjectURL(blob);
-      // Save for preview — no auto-play, wait for user click
+      // Save for preview
       window._lastVideoURL = url;
       window._lastVideoName = `quran-${surah}-${vLabel}.${ext}`;
+      window._lastVideoMime = mime;
       document.getElementById('btnPlay').style.display = '';
       document.getElementById('btnDownloadVid').style.display = '';
+      document.getElementById('vidCompat').classList.toggle('visible', ext === 'webm');
       btnVideo.disabled=false; btnVideo.textContent='🎬 Create Video';
     };
 
