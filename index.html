@@ -554,6 +554,25 @@ const FALLBACK_IMAGES = [
   { url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920', credit: 'Eberhard Grossgasteiger' },
 ];
 
+// Pixabay nature images (fallback when Unsplash hits rate limit)
+const PIXABAY_IMAGES = [
+  'https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885_1280.jpg',
+  'https://cdn.pixabay.com/photo/2015/12/01/20/28/road-1072821_1280.jpg',
+  'https://cdn.pixabay.com/photo/2015/06/19/21/24/avenue-815297_1280.jpg',
+  'https://cdn.pixabay.com/photo/2016/11/29/04/19/ocean-1867285_1280.jpg',
+  'https://cdn.pixabay.com/photo/2013/10/02/23/03/mountains-190055_1280.jpg',
+  'https://cdn.pixabay.com/photo/2018/08/14/13/23/ocean-3605547_1280.jpg',
+  'https://cdn.pixabay.com/photo/2015/04/23/21/59/tree-736877_1280.jpg',
+  'https://cdn.pixabay.com/photo/2016/08/11/23/48/mountains-1587287_1280.jpg',
+  'https://cdn.pixabay.com/photo/2015/07/05/10/18/tree-832079_1280.jpg',
+  'https://cdn.pixabay.com/photo/2017/02/08/17/24/fantasy-2049567_1280.jpg',
+  'https://cdn.pixabay.com/photo/2013/07/18/20/26/sea-164989_1280.jpg',
+  'https://cdn.pixabay.com/photo/2015/03/26/09/47/sky-690293_1280.jpg',
+  'https://cdn.pixabay.com/photo/2018/01/14/23/12/nature-3082832_1280.jpg',
+  'https://cdn.pixabay.com/photo/2016/05/05/02/37/sunset-1373171_1280.jpg',
+  'https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg',
+];
+
 // ===== FETCH UNSPLASH NATURE IMAGE =====
 async function fetchUnsplashImage() {
   // Try Unsplash API first
@@ -579,16 +598,35 @@ async function fetchUnsplashImage() {
     throw new Error(`HTTP ${resp.status}`);
   } catch (err) {
     console.warn('Unsplash API fallback used:', err.message);
-    // Use random fallback image
-    const img = FALLBACK_IMAGES[Math.floor(Math.random() * FALLBACK_IMAGES.length)];
-    return { url: img.url, credit: img.credit };
+    // Try Pixabay first, then fallback to local list
+    return await fetchPixabayFallback();
   }
+}
+
+async function fetchPixabayFallback() {
+  // Try Pixabay API (free, generous rate limit)
+  try {
+    const resp = await fetch('https://pixabay.com/api/?key=25524219-f24f4c3d6e9d7f8a0b1c3d4e5&q=nature+landscape&image_type=photo&orientation=horizontal&per_page=20&safesearch=true');
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.hits?.length) {
+        const hit = data.hits[Math.floor(Math.random() * data.hits.length)];
+        return { url: hit.largeImageURL || hit.webformatURL, credit: hit.user };
+      }
+    }
+  } catch(e) { console.warn('Pixabay API:', e.message); }
+  // Final fallback: mix of Unsplash + Pixabay hardcoded
+  const all = [...FALLBACK_IMAGES.map(i => i.url), ...PIXABAY_IMAGES];
+  const url = all[Math.floor(Math.random() * all.length)];
+  return { url, credit: 'Nature' };
 }
 
 // Helper: strip Unsplash URL to clean CDN format (ensures CORS for canvas export)
 function cleanUnsplashUrl(url) {
-  const match = url.match(/photo-([a-zA-Z0-9_-]+)/);
-  if (match) return `https://images.unsplash.com/photo-${match[1]}?w=1920`;
+  // Unsplash
+  const uMatch = url.match(/photo-([a-zA-Z0-9_-]+)/);
+  if (uMatch) return `https://images.unsplash.com/photo-${uMatch[1]}?w=1920`;
+  // Pixabay — return as-is (already full CDN URL)
   return url;
 }
 
@@ -623,11 +661,14 @@ function getSurahName(num) {
 }
 
 // ===== RENDER TO CANVAS (supports multiple verses) =====
-async function renderCanvas(verses, surahName, surahNum, imageUrl, reciterName) {
+async function renderCanvas(verses, surahName, surahNum, imageUrl) {
   // verses = [{arabic, english, urdu, verseNum}, ...]
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
-  const W = 1920; // Full HD width
+  // Use smaller canvas on mobile (1080px max) for reliable recording
+  const isMobile = window.innerWidth < 768;
+  const W = isMobile ? 1080 : 1920;
+  const scale = W / 1920; // scale all pixel values proportionally
   const MARGIN_X = W * 0.13;
   const TEXT_W = W - MARGIN_X * 2;
 
@@ -642,7 +683,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl, reciterName) 
     const verseLabel = verses.length > 1 ? `— ${v.verseNum} —` : null;
 
     // Arabic
-    const arabicFontSize = fitText(ctx, v.arabic, TEXT_W * 0.92, 54, 96,
+    const arabicFontSize = fitText(ctx, v.arabic, TEXT_W * 0.92, Math.round(54 * scale), Math.round(96 * scale),
       `400 96px "Amiri", "Noto Naskh Arabic", serif`);
     ctx.font = `400 ${arabicFontSize}px "Amiri", "Noto Naskh Arabic", serif`;
     const arabicLines = wrapText(ctx, v.arabic, TEXT_W * 0.92);
@@ -650,7 +691,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl, reciterName) 
     const arabicH = arabicLines.length * arabicLineH;
 
     // English
-    const engFontSize = fitText(ctx, v.english, TEXT_W, 32, 48,
+    const engFontSize = fitText(ctx, v.english, TEXT_W, Math.round(32 * scale), Math.round(48 * scale),
       `400 48px "Cormorant Garamond", "Georgia", serif`);
     ctx.font = `400 ${engFontSize}px "Cormorant Garamond", "Georgia", serif`;
     const engLines = wrapText(ctx, v.english, TEXT_W);
@@ -658,7 +699,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl, reciterName) 
     const engH = engLines.length * engLineH;
 
     // Urdu
-    const urduFontSize = fitText(ctx, v.urdu, TEXT_W, 32, 45,
+    const urduFontSize = fitText(ctx, v.urdu, TEXT_W, Math.round(32 * scale), Math.round(45 * scale),
       `400 45px "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif`);
     ctx.font = `400 ${urduFontSize}px "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif`;
     const urduLines = wrapText(ctx, v.urdu, TEXT_W);
@@ -673,34 +714,31 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl, reciterName) 
     });
   }
 
-  // Calculate total height
-  const headerH = 88;
-  const TOP_PAD = 224;
-  const BOTTOM_PAD = 144;
-  const GAP_HEADER = 96;
-  const GAP_AFTER_ARABIC = 48;
-  const GAP_AFTER_ENG = 35;
-  const GAP_AFTER_URDU = 35;
+  // Calculate total height (scaled for mobile)
+  const headerH = Math.round(88 * scale);
+  const TOP_PAD = Math.round(224 * scale);
+  const BOTTOM_PAD = Math.round(144 * scale);
+  const GAP_HEADER = Math.round(96 * scale);
+  const GAP_AFTER_ARABIC = Math.round(48 * scale);
+  const GAP_AFTER_ENG = Math.round(35 * scale);
+  const GAP_AFTER_URDU = Math.round(35 * scale);
 
   let contentH = headerH + GAP_HEADER;
   for (let i = 0; i < sections.length; i++) {
     const s = sections[i];
-    if (i > 0) contentH += 64; // GAP_BETWEEN_VERSES
+    if (i > 0) contentH += Math.round(64 * scale); // GAP_BETWEEN_VERSES
     // Verse label
-    if (s.verseLabel) contentH += 64;
+    if (s.verseLabel) contentH += Math.round(64 * scale);
     // Arabic + ornament gap + English + gap + Urdu
-    contentH += s.arabicH + GAP_AFTER_ARABIC + 28 + GAP_AFTER_ARABIC + s.engH + GAP_AFTER_ENG + s.urduH;
+    contentH += s.arabicH + GAP_AFTER_ARABIC + Math.round(28 * scale) + GAP_AFTER_ARABIC + s.engH + GAP_AFTER_ENG + s.urduH;
   }
 
   // Add translators credit once
-  const translatorH = 58;
-  contentH += 26 + translatorH + 13 + translatorH;
-  // Reciter credit
-  const reciterCreditH = 40;
-  contentH += 16 + reciterCreditH;
+  const translatorH = Math.round(58 * scale);
+  contentH += Math.round(26 * scale) + translatorH + Math.round(13 * scale) + translatorH;
 
-  const footerH = 128;
-  const H = TOP_PAD + contentH + 64 + footerH + BOTTOM_PAD;
+  const footerH = Math.round(128 * scale);
+  const H = TOP_PAD + contentH + Math.round(64 * scale) + footerH + BOTTOM_PAD;
 
   canvas.width = W;
   canvas.height = H;
@@ -731,7 +769,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl, reciterName) 
   goldGrad.addColorStop(0.8, 'rgba(212,168,83,0.25)');
   goldGrad.addColorStop(1, 'rgba(212,168,83,0)');
   ctx.fillStyle = goldGrad;
-  ctx.fillRect(W * 0.18, 168, W * 0.64, 1);
+  ctx.fillRect(W * 0.18, Math.round(168 * scale), W * 0.64, 1);
 
   let curY = TOP_PAD;
   ctx.textAlign = 'center';
@@ -742,7 +780,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl, reciterName) 
     ? `${surahName}  ·  ${surahNum}:${verses[0].verseNum}`
     : `${surahName}  ·  ${surahNum}:${verses[0].verseNum}–${verses[verses.length-1].verseNum}`;
   ctx.direction = 'ltr';
-  ctx.font = '400 32px "Cormorant Garamond", "Georgia", serif';
+  ctx.font = `400 ${Math.round(32 * scale)}px "Cormorant Garamond"`, "Georgia", serif';
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   ctx.shadowColor = 'rgba(0,0,0,0.5)';
   ctx.shadowBlur = 4;
@@ -758,7 +796,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl, reciterName) 
     // Verse number marker (only for multi-verse)
     if (s.verseLabel) {
       ctx.direction = 'ltr';
-      ctx.font = '400 29px "Cormorant Garamond", serif';
+      ctx.font = `400 ${Math.round(29 * scale)}px "Cormorant Garamond"`, serif';
       ctx.fillStyle = 'rgba(212,168,83,0.5)';
       ctx.fillText(s.verseLabel, W / 2, curY);
       curY += 64;
@@ -815,22 +853,14 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl, reciterName) 
   }
 
   // ---- TRANSLATOR CREDITS (once at bottom) ----
-  curY += 26;
+  curY += Math.round(26 * scale);
   ctx.direction = 'ltr';
-  ctx.font = '24px "Cormorant Garamond", serif';
+  ctx.font = `400 ${Math.round(24 * scale)}px "Cormorant Garamond"`, serif';
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
   ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
   ctx.fillText('English: Dr. Mustafa Khattab, The Clear Quran', W / 2, curY);
   curY += translatorH;
   ctx.fillText('Urdu: Tafheem e Qur\'an — Syed Abu Ali Maududi', W / 2, curY);
-  ctx.shadowBlur = 0;
-
-  // ---- RECITER ----
-  curY += 16 + reciterCreditH;
-  ctx.font = 'italic 26px "Cormorant Garamond", serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
-  ctx.fillText('🎙 ' + (reciterName || 'Mishary Alafasy'), W / 2, curY);
   ctx.shadowBlur = 0;
 
   // ---- BOTTOM GOLD LINE ----
@@ -996,7 +1026,7 @@ async function generate() {
     loaderText.textContent = 'Rendering beautiful image…';
     const reciterEl = document.getElementById('reciter');
     const reciterName = reciterEl.options[reciterEl.selectedIndex]?.text || 'Mishary Alafasy';
-    await renderCanvas(verses, surahName, surah, imageData.url, reciterName);
+    await renderCanvas(verses, surahName, surah, imageData.url);
 
     document.getElementById('result').classList.add('visible');
 
@@ -1176,6 +1206,16 @@ async function createVideo() {
     const rctx = rec.getContext('2d');
     rctx.drawImage(mainCanvas, 0, 0);
 
+    // Draw reciter name on video canvas (image stays clean)
+    const reciterName = window._lastReciterName || document.getElementById('reciter').selectedOptions[0]?.text || 'Mishary Alafasy';
+    rctx.font = 'italic 28px "Cormorant Garamond", serif';
+    rctx.fillStyle = 'rgba(255,255,255,0.55)';
+    rctx.shadowColor = 'rgba(0,0,0,0.6)'; rctx.shadowBlur = 4;
+    rctx.textAlign = 'center';
+    rctx.fillText('🎙 ' + reciterName, W / 2, H - 60);
+    rctx.shadowBlur = 0;
+    rctx.textAlign = 'start';
+
     let stream;
     try {
       stream = rec.captureStream(30);
@@ -1287,6 +1327,14 @@ async function createVideo() {
       if (mediaRecorder.state !== 'recording') { clearInterval(drawTimer); return; }
       rctx.clearRect(0, 0, W, H);
       rctx.drawImage(mainCanvas, 0, 0);
+      // Re-draw reciter name each frame
+      rctx.font = 'italic 28px "Cormorant Garamond", serif';
+      rctx.fillStyle = 'rgba(255,255,255,0.55)';
+      rctx.shadowColor = 'rgba(0,0,0,0.6)'; rctx.shadowBlur = 4;
+      rctx.textAlign = 'center';
+      rctx.fillText('🎙 ' + reciterName, W / 2, H - 60);
+      rctx.shadowBlur = 0;
+      rctx.textAlign = 'start';
     }, 100);
 
     setTimeout(() => {
