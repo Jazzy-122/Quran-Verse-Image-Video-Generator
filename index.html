@@ -423,7 +423,7 @@
     <option value="Abdul_Basit_Mujawwad_128kbps">Abdul Basit (Mujawwad)</option>
   </select>
   <label class="reciter-check">
-    <input type="checkbox" id="showReciter" checked> 🎙 Show reciter on video
+    <input type="checkbox" id="showReciter"> 🎙 Show reciter on image</label>
   </label>
 </div>
 
@@ -1210,7 +1210,7 @@ async function createVideo() {
     rctx.drawImage(mainCanvas, 0, 0);
 
     // Draw reciter name on video canvas (image stays clean)
-    const reciterName = window._lastReciterName || document.getElementById('reciter').selectedOptions[0]?.text || 'Mishary Alafasy';
+    const reciterName = window._lastReciterName || (() => { const el = document.getElementById('reciter'); return el.options[el.selectedIndex]?.text; })() || 'Mishary Alafasy';
     if (document.getElementById('showReciter').checked) {
       rctx.font = 'italic 28px "Cormorant Garamond", serif';
       rctx.fillStyle = 'rgba(255,255,255,0.55)';
