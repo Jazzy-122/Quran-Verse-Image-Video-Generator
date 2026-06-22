@@ -422,6 +422,9 @@
     <option value="Abdullah_Matroud_128kbps">Abdullah Matroud</option>
     <option value="Abdul_Basit_Mujawwad_128kbps">Abdul Basit (Mujawwad)</option>
   </select>
+  <label class="reciter-check">
+    <input type="checkbox" id="showReciter" checked> 🎙 Show reciter on video
+  </label>
 </div>
 
 <div class="loader" id="loader">
@@ -745,7 +748,7 @@ async function renderCanvas(verses, surahName, surahNum, imageUrl) {
 
   // ---- DRAW BACKGROUND ----
   const scale = Math.max(W / bgImg.width, H / bgImg.height);
-  ctx.drawImage(bgImg, -(bgImg.width * scale - W) / 2, -(bgImg.height * scale - H) / 2, bgImg.width * mobileScale, bgImg.height * mobileScale);
+  ctx.drawImage(bgImg, -(bgImg.width * scale - W) / 2, -(bgImg.height * scale - H) / 2, bgImg.width * scale, bgImg.height * scale);
 
   const overlay = ctx.createLinearGradient(0, 0, 0, H);
   overlay.addColorStop(0, 'rgba(0,0,0,0.40)');
@@ -1208,13 +1211,15 @@ async function createVideo() {
 
     // Draw reciter name on video canvas (image stays clean)
     const reciterName = window._lastReciterName || document.getElementById('reciter').selectedOptions[0]?.text || 'Mishary Alafasy';
-    rctx.font = 'italic 28px "Cormorant Garamond", serif';
-    rctx.fillStyle = 'rgba(255,255,255,0.55)';
-    rctx.shadowColor = 'rgba(0,0,0,0.6)'; rctx.shadowBlur = 4;
-    rctx.textAlign = 'center';
-    rctx.fillText('🎙 ' + reciterName, W / 2, H - 60);
-    rctx.shadowBlur = 0;
-    rctx.textAlign = 'start';
+    if (document.getElementById('showReciter').checked) {
+      rctx.font = 'italic 28px "Cormorant Garamond", serif';
+      rctx.fillStyle = 'rgba(255,255,255,0.55)';
+      rctx.shadowColor = 'rgba(0,0,0,0.6)'; rctx.shadowBlur = 4;
+      rctx.textAlign = 'center';
+      rctx.fillText('🎙 ' + reciterName, W / 2, H - 60);
+      rctx.shadowBlur = 0;
+      rctx.textAlign = 'start';
+    }
 
     let stream;
     try {
@@ -1327,14 +1332,16 @@ async function createVideo() {
       if (mediaRecorder.state !== 'recording') { clearInterval(drawTimer); return; }
       rctx.clearRect(0, 0, W, H);
       rctx.drawImage(mainCanvas, 0, 0);
-      // Re-draw reciter name each frame
-      rctx.font = 'italic 28px "Cormorant Garamond", serif';
-      rctx.fillStyle = 'rgba(255,255,255,0.55)';
-      rctx.shadowColor = 'rgba(0,0,0,0.6)'; rctx.shadowBlur = 4;
-      rctx.textAlign = 'center';
-      rctx.fillText('🎙 ' + reciterName, W / 2, H - 60);
-      rctx.shadowBlur = 0;
-      rctx.textAlign = 'start';
+      // Re-draw reciter name each frame (only if checked)
+      if (document.getElementById('showReciter').checked) {
+        rctx.font = 'italic 28px "Cormorant Garamond", serif';
+        rctx.fillStyle = 'rgba(255,255,255,0.55)';
+        rctx.shadowColor = 'rgba(0,0,0,0.6)'; rctx.shadowBlur = 4;
+        rctx.textAlign = 'center';
+        rctx.fillText('🎙 ' + reciterName, W / 2, H - 60);
+        rctx.shadowBlur = 0;
+        rctx.textAlign = 'start';
+      }
     }, 100);
 
     setTimeout(() => {
