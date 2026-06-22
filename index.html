@@ -994,7 +994,8 @@ async function generate() {
     ]);
 
     loaderText.textContent = 'Rendering beautiful image…';
-    const reciterName = document.getElementById('reciter').selectedOptions[0]?.text || 'Mishary Alafasy';
+    const reciterEl = document.getElementById('reciter');
+    const reciterName = reciterEl.options[reciterEl.selectedIndex]?.text || 'Mishary Alafasy';
     await renderCanvas(verses, surahName, surah, imageData.url, reciterName);
 
     document.getElementById('result').classList.add('visible');
