@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-<head><base href="autoclaw-local-html://ae5a4494-92cb-4354-96e4-62bde5a1e013/C%3A/Users/jahan/.openclaw-autoclaw/workspace/quran-generator-fixed.html">
+<head><base href="autoclaw-local-html://47debac7-9b2e-47f0-94de-bb55054ce46c/C%3A/Users/jahan/.openclaw-autoclaw/workspace/quran-generator-fixed.html">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quran Verse Image / Video Generator</title>
@@ -1377,64 +1377,40 @@ async function createVideo() {
         btnVideo.disabled = false; btnVideo.textContent = '🎬 Create Video';
         showError('No video data. Try a different browser.'); return;
       }
-      try {
-        btnVideo.textContent = recorderOptions.needsTranscode ? 'Converting to MP4...' : 'Saving...';
-        const rawBlob = new Blob(recordedChunks, { type: recorderOptions.mimeType });
-        console.log('[Video] Raw output:', (rawBlob.size/1024).toFixed(0), 'KB');
-        const vLabel = verses.length === 1 ? String(verses[0].verseNum) : `${verses[0].verseNum}-${verses[verses.length-1].verseNum}`;
 
-        let blob, ext;
-        if (recorderOptions.needsTranscode) {
-          document.getElementById('vidCompat').classList.add('visible');
-          const statusEl = document.getElementById('loaderText');
-          blob = await convertToWhatsAppMp4(rawBlob, statusEl);
-          ext = 'mp4';
-          console.log('[Video] WhatsApp MP4 output:', (blob.size/1024).toFixed(0), 'KB');
-        } else {
-          blob = rawBlob;
-          ext = recorderOptions.ext;
-        }
+      const rawBlob = new Blob(recordedChunks, { type: recorderOptions.mimeType });
+      console.log('[Video] Raw output:', (rawBlob.size/1024).toFixed(0), 'KB', recorderOptions.mimeType);
+      const vLabel = verses.length === 1 ? String(verses[0].verseNum) : `${verses[0].verseNum}-${verses[verses.length-1].verseNum}`;
 
-        const url = URL.createObjectURL(blob);
-        window._lastVideoURL = url;
-        window._lastVideoName = `quran-${surah}-${vLabel}.${ext}`;
-        window._lastVideoMime = `video/${ext}`;
-        document.getElementById('btnPlay').style.display = '';
-        document.getElementById('btnDownloadVid').style.display = '';
-        document.getElementById('vidCompat').classList.remove('visible');
-      } catch (err) {
-        console.error('[Video] Conversion failed:', err);
-        // Retry up to 2 more times with backoff
-        let retryBlob = null;
-        for (let attempt = 1; attempt <= 2; attempt++) {
-          btnVideo.textContent = `Retrying (${attempt}/2)…`;
-          console.log(`[Video] Retry attempt ${attempt}/2`);
-          await new Promise(r => setTimeout(r, attempt * 2000));
-          try {
-            const rawBlob = new Blob(recordedChunks, { type: recorderOptions.mimeType });
-            const statusEl = document.getElementById('loaderText');
-            retryBlob = await convertToWhatsAppMp4(rawBlob, statusEl);
-            console.log('[Video] Retry succeeded:', (retryBlob.size/1024).toFixed(0), 'KB');
-            break;
-          } catch (retryErr) {
-            console.error(`[Video] Retry ${attempt}/2 failed:`, retryErr);
-            if (attempt === 2) {
-              showError(`Conversion failed after 3 attempts: ${retryErr.message}`);
-            }
-          }
-        }
-        if (retryBlob) {
-          const vLabel = verses.length === 1 ? String(verses[0].verseNum) : `${verses[0].verseNum}-${verses[verses.length-1].verseNum}`;
-          const url = URL.createObjectURL(retryBlob);
-          window._lastVideoURL = url;
+      // 1) SAVE RAW IMMEDIATELY — always works, no backend needed
+      const rawUrl = URL.createObjectURL(rawBlob);
+      window._lastVideoURL = rawUrl;
+      window._lastVideoName = `quran-${surah}-${vLabel}.${recorderOptions.ext}`;
+      window._lastVideoMime = recorderOptions.mimeType;
+      document.getElementById('btnPlay').style.display = '';
+      document.getElementById('btnDownloadVid').style.display = '';
+      btnVideo.disabled = false; btnVideo.textContent = '🎬 Create Video';
+
+      // 2) BACKGROUND: try Railway conversion to upgrade to MP4
+      if (recorderOptions.needsTranscode) {
+        btnVideo.textContent = 'Converting…';
+        document.getElementById('vidCompat').classList.add('visible');
+        try {
+          const mp4Blob = await convertToWhatsAppMp4(rawBlob, document.getElementById('loaderText'));
+          const mp4Url = URL.createObjectURL(mp4Blob);
+          URL.revokeObjectURL(rawUrl);
+          window._lastVideoURL = mp4Url;
           window._lastVideoName = `quran-${surah}-${vLabel}.mp4`;
           window._lastVideoMime = 'video/mp4';
-          document.getElementById('btnPlay').style.display = '';
-          document.getElementById('btnDownloadVid').style.display = '';
+          console.log('[Video] Upgraded to MP4:', (mp4Blob.size/1024).toFixed(0), 'KB');
+          btnVideo.textContent = '🎬 Create Video';
+        } catch (err) {
+          console.warn('[Video] Railway unavailable, raw recording kept:', err.message);
+          btnVideo.textContent = '🎬 Create Video';
+          // Raw recording already saved above — user can download it
+        } finally {
+          document.getElementById('vidCompat').classList.remove('visible');
         }
-      } finally {
-        document.getElementById('vidCompat').classList.remove('visible');
-        btnVideo.disabled = false; btnVideo.textContent = '🎬 Create Video';
       }
     };
 
